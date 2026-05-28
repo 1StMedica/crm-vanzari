@@ -321,7 +321,7 @@ tr:hover td{background:#FAFAF8}
       <div class="kc" style="border-left:3px solid var(--acc)"><div class="kl">Leaduri noi (luna)</div><div class="kv" id="d-leads">—</div><div class="ks">Se încarcă...</div></div>
       <div class="kc" style="border-left:3px solid var(--wrn)"><div class="kl">Follow-up scadent azi</div><div class="kv" id="d-followup" style="color:var(--wrn)">—</div><div class="ks" id="d-followup-sub">—</div></div>
       <div class="kc" style="border-left:3px solid var(--suc)"><div class="kl">Oferte trimise</div><div class="kv" id="d-offers">—</div><div class="ks up" id="d-offers-sub">—</div></div>
-      <div class="kc" style="border-left:3px solid var(--pur)"><div class="kl">Valoare pipeline (EUR)</div><div class="kv" id="d-pipeline">—</div><div class="ks up">Total oportunități active</div></div>
+      <div class="kc" style="border-left:3px solid var(--pur)"><div class="kl">Valoare pipeline (LEI)</div><div class="kv" id="d-pipeline">—</div><div class="ks up">Total oportunități active</div></div>
     </div>
     <div class="tw">
       <div>
@@ -350,7 +350,7 @@ tr:hover td{background:#FAFAF8}
   <!-- ======================== LEADS ======================== -->
   <div id="p-leads" class="pg">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-      <select class="fi" style="width:130px" id="f-status" onchange="filterLeads()"><option value="">Toate statusurile</option><option>Nou</option><option>Contactat</option><option>Calificat</option><option>Amânat</option><option>Pierdut</option></select>
+      <select class="fi" style="width:130px" id="f-status" onchange="filterLeads()"><option value="">Toate statusurile</option><option>Nou</option><option>Contactat</option><option>Calificat</option><option>Interesat</option><option>Demo programat</option><option>Ofertă trimisă</option><option>Amânat</option><option>Pierdut</option></select>
       <select class="fi" style="width:120px" id="f-sursa" onchange="filterLeads()"><option value="">Toate sursele</option><option>Website</option><option>LinkedIn</option><option>Referral</option><option>Eveniment</option><option>Apel rece</option></select>
       <select class="fi" style="width:115px" id="f-agent" onchange="filterLeads()"><option value="">Toți agenții</option></select>
       <select class="fi" style="width:115px" id="f-judet" onchange="filterLeads()"><option value="">Toate județele</option></select>
@@ -424,7 +424,14 @@ tr:hover td{background:#FAFAF8}
     <div class="tw">
       <div>
         <div class="card" style="margin-bottom:12px">
-          <div class="ch"><div class="ct">Date client</div></div>
+          <div class="ch"><div class="ct">Date client</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:12px;color:var(--mut)">Preia din lead:</label>
+              <select class="fi" id="ob-lead-select" style="width:200px" onchange="prefillFromLead(this.value)">
+                <option value="">— Selectează lead —</option>
+              </select>
+            </div>
+          </div>
           <div class="f2">
             <div class="fr"><label class="fl">Client *</label><input class="fi" id="ob-client" placeholder="Companie SRL"></div>
             <div class="fr"><label class="fl">Contact *</label><input class="fi" id="ob-contact" placeholder="Nume Prenume"></div>
@@ -446,7 +453,7 @@ tr:hover td{background:#FAFAF8}
           </div>
           <div class="tw2" style="margin-bottom:0">
             <table>
-              <thead><tr><th>Cod</th><th>Denumire</th><th>Cant.</th><th>Preț (EUR)</th><th>Disc%</th><th>TVA%</th><th>Total</th><th></th></tr></thead>
+              <thead><tr><th>Cod</th><th>Denumire</th><th>Cant.</th><th>Preț (LEI)</th><th>Disc%</th><th>TVA%</th><th>Total</th><th></th></tr></thead>
               <tbody id="ob-rows"></tbody>
             </table>
           </div>
@@ -470,12 +477,12 @@ tr:hover td{background:#FAFAF8}
         <div class="card" style="position:sticky;top:0">
           <div class="ct" style="margin-bottom:10px">Sumar ofertă</div>
           <div class="os">
-            <div class="osr"><span>Subtotal</span><span id="ob-st">0 EUR</span></div>
-            <div class="osr"><span>Discount</span><span style="color:var(--suc)" id="ob-dv">-0 EUR</span></div>
-            <div class="osr"><span>TVA (19%)</span><span id="ob-tv">+0 EUR</span></div>
-            <div class="osr tot"><span>TOTAL</span><span id="ob-gt" style="color:var(--acc)">0 EUR</span></div>
+            <div class="osr"><span>Subtotal</span><span id="ob-st">0 LEI</span></div>
+            <div class="osr"><span>Discount</span><span style="color:var(--suc)" id="ob-dv">-0 LEI</span></div>
+            <div class="osr"><span>TVA (21%)</span><span id="ob-tv">+0 LEI</span></div>
+            <div class="osr tot"><span>TOTAL</span><span id="ob-gt" style="color:var(--acc)">0 LEI</span></div>
           </div>
-          <div id="ob-disc-warn" style="margin-top:8px;padding:7px 9px;background:var(--sucl);border-radius:var(--r);border:1px solid #BBF7D0;font-size:11.5px;color:#15803D">Limită discount: 25% · Curent: 0% ✓</div>
+          <div id="ob-disc-warn" style="margin-top:8px;padding:7px 9px;background:var(--sucl);border-radius:var(--r);border:1px solid #BBF7D0;font-size:11.5px;color:#15803D">Limită discount: 20% · Curent: 0% ✓</div>
           <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
             <button class="btn bg" style="width:100%;justify-content:center" onclick="generateOfferWord()">📄 Generează Word (.docx)</button>
             <button class="btn bg" style="width:100%;justify-content:center" onclick="sendOfferEmail()">✉ Trimite pe email</button>
@@ -494,7 +501,7 @@ tr:hover td{background:#FAFAF8}
   <!-- ======================== ACTIVITIES ======================== -->
   <div id="p-activities" class="pg">
     <div style="display:flex;gap:8px;margin-bottom:14px">
-      <select class="fi" style="width:130px" id="f-act-type"><option value="">Toate tipurile</option><option>Apel</option><option>Email</option><option>WhatsApp</option><option>Vizită</option><option>Demo</option><option>Notă</option></select>
+      <select class="fi" style="width:130px" id="f-act-type"><option value="">Toate tipurile</option><option>Apel</option><option>Email</option><option>WhatsApp</option><option>Vizită</option><option>Demo</option><option>Ofertare</option><option>Suport tehnic</option><option>Notă</option></select>
       <select class="fi" style="width:115px" id="f-act-agent"><option value="">Toți agenții</option></select>
       <select class="fi" style="width:130px" id="f-act-period" onchange="loadActivities()">
         <option value="7">Ultimele 7 zile</option>
@@ -586,7 +593,7 @@ tr:hover td{background:#FAFAF8}
           <div style="padding:8px;background:var(--bg);border-radius:var(--r)"><div style="font-size:11px;font-weight:600;margin-bottom:3px">Surse leaduri</div><div style="font-size:11px;color:var(--mut)" id="nom-surse">—</div></div>
           <div style="padding:8px;background:var(--bg);border-radius:var(--r)"><div style="font-size:11px;font-weight:600;margin-bottom:3px">Statusuri lead</div><div style="font-size:11px;color:var(--mut)">Nou, Contactat, Calificat, Amânat, Pierdut</div></div>
           <div style="padding:8px;background:var(--bg);border-radius:var(--r)"><div style="font-size:11px;font-weight:600;margin-bottom:3px">Tipuri activitate</div><div style="font-size:11px;color:var(--mut)">Apel, Email, WhatsApp, Vizită, Demo, Notă</div></div>
-          <div style="padding:8px;background:var(--bg);border-radius:var(--r)"><div style="font-size:11px;font-weight:600;margin-bottom:3px">Limite discount</div><div style="font-size:11px;color:var(--mut)" id="nom-disc">Agent: 25% · Manager: 40%</div></div>
+          <div style="padding:8px;background:var(--bg);border-radius:var(--r)"><div style="font-size:11px;font-weight:600;margin-bottom:3px">Limite discount</div><div style="font-size:11px;color:var(--mut)" id="nom-disc">Agent: 20% · Manager: 35%</div></div>
         </div>
       </div>
       <div class="card">
@@ -624,17 +631,17 @@ tr:hover td{background:#FAFAF8}
     <div class="fr"><label class="fl">Județ</label>
       <select class="fi" id="ml-judet"><option value="">—</option></select>
     </div>
-    <div class="fr"><label class="fl">Responsabil *</label>
+    <div class="fr"><label class="fl">Agent responsabil *</label>
       <select class="fi" id="ml-responsabil"><option value="">Neatribuit</option></select>
     </div>
     <div class="fr"><label class="fl">Status</label>
-      <select class="fi" id="ml-status"><option>Nou</option><option>Contactat</option><option>Calificat</option><option>Amânat</option><option>Pierdut</option></select>
+      <select class="fi" id="ml-status"><option>Nou</option><option>Contactat</option><option>Calificat</option><option>Interesat</option><option>Demo programat</option><option>Ofertă trimisă</option><option>Amânat</option><option>Pierdut</option></select>
     </div>
     <div class="fr"><label class="fl">Prioritate</label>
       <select class="fi" id="ml-prioritate"><option>Medie</option><option>Înaltă</option><option>Scăzută</option></select>
     </div>
     <div class="fr"><label class="fl">Follow-up</label><input class="fi" id="ml-followup" type="date"></div>
-    <div class="fr"><label class="fl">Valoare estimată (EUR)</label><input class="fi" id="ml-valoare" type="number" placeholder="0"></div>
+    <div class="fr"><label class="fl">Valoare estimată (LEI)</label><input class="fi" id="ml-valoare" type="number" placeholder="0"></div>
   </div>
   <div class="fr"><label class="fl">Observații</label><textarea class="fi" id="ml-obs" rows="2" placeholder="Note inițiale..."></textarea></div>
   <div style="background:var(--accl);border-radius:var(--r);padding:7px 10px;font-size:12px;color:#1D4ED8;margin:8px 0">
@@ -676,7 +683,7 @@ tr:hover td{background:#FAFAF8}
       <div style="margin-top:12px">
         <div class="fr"><label class="fl">Schimbă status</label>
           <select class="fi" id="mld-status-sel" onchange="updateLeadStatus()">
-            <option>Nou</option><option>Contactat</option><option>Calificat</option><option>Amânat</option><option>Pierdut</option>
+            <option>Nou</option><option>Contactat</option><option>Calificat</option><option>Interesat</option><option>Demo programat</option><option>Ofertă trimisă</option><option>Amânat</option><option>Pierdut</option>
           </select>
         </div>
         <div class="fr"><label class="fl">Follow-up</label><input class="fi" type="date" id="mld-followup-input"></div>
@@ -691,7 +698,7 @@ tr:hover td{background:#FAFAF8}
   <div class="mh"><div class="mt">Activitate nouă</div><div class="mx" onclick="closeModal('m-activity')">✕</div></div>
   <div class="f2">
     <div class="fr"><label class="fl">Tip *</label>
-      <select class="fi" id="ma-tip"><option>Apel</option><option>Email</option><option>WhatsApp</option><option>Vizită</option><option>Demo</option><option>Notă internă</option></select>
+      <select class="fi" id="ma-tip"><option>Apel</option><option>Email</option><option>WhatsApp</option><option>Vizită</option><option>Demo</option><option>Ofertare</option><option>Suport tehnic</option><option>Notă internă</option></select>
     </div>
     <div class="fr"><label class="fl">Data și ora *</label><input class="fi" type="datetime-local" id="ma-data"></div>
     <div class="fr"><label class="fl">Asociat cu *</label>
@@ -744,7 +751,7 @@ tr:hover td{background:#FAFAF8}
   <div class="f2">
     <div class="fr"><label class="fl">Client / Lead *</label><input class="fi" id="mo-client" placeholder="Companie SRL"></div>
     <div class="fr"><label class="fl">Contact</label><input class="fi" id="mo-contact" placeholder="Nume Prenume"></div>
-    <div class="fr"><label class="fl">Valoare estimată (EUR) *</label><input class="fi" id="mo-valoare" type="number" placeholder="0"></div>
+    <div class="fr"><label class="fl">Valoare estimată (LEI) *</label><input class="fi" id="mo-valoare" type="number" placeholder="0"></div>
     <div class="fr"><label class="fl">Probabilitate (%)</label><input class="fi" id="mo-prob" type="number" min="0" max="100" placeholder="50"></div>
     <div class="fr"><label class="fl">Etapă *</label>
       <select class="fi" id="mo-etapa"><option>Identificare</option><option>Discuție</option><option>Ofertare</option><option>Negociere</option><option>Câștigat</option><option>Pierdut</option></select>
@@ -772,8 +779,8 @@ tr:hover td{background:#FAFAF8}
     <div class="fr"><label class="fl">Categorie</label>
       <select class="fi" id="mp-cat"><option>Echipamente</option><option>Servicii</option><option>Piese schimb</option></select>
     </div>
-    <div class="fr"><label class="fl">Preț (EUR) *</label><input class="fi" id="mp-pret" type="number" placeholder="0"></div>
-    <div class="fr"><label class="fl">TVA (%)</label><input class="fi" id="mp-tva" type="number" value="19"></div>
+    <div class="fr"><label class="fl">Preț (LEI) *</label><input class="fi" id="mp-pret" type="number" placeholder="0"></div>
+    <div class="fr"><label class="fl">TVA (%)</label><input class="fi" id="mp-tva" type="number" value="21"></div>
     <div class="fr"><label class="fl">Discount maxim (%)</label><input class="fi" id="mp-disc-max" type="number" value="25"></div>
     <div class="fr"><label class="fl">Status</label>
       <select class="fi" id="mp-status"><option value="activ">Activ</option><option value="inactiv">Inactiv</option></select>
@@ -781,6 +788,8 @@ tr:hover td{background:#FAFAF8}
     <div class="fr"><label class="fl">UM</label><input class="fi" id="mp-um" value="buc" placeholder="buc / oră / proiect"></div>
   </div>
   <div class="fr"><label class="fl">Descriere</label><textarea class="fi" id="mp-desc" rows="2" placeholder="Descriere scurtă produs..."></textarea></div>
+  <div class="fr"><label class="fl">URL Poză produs</label><input class="fi" id="mp-poza" type="url" placeholder="https://..."></div>
+  <div id="mp-poza-preview" style="display:none;margin-top:6px"><img id="mp-poza-img" style="max-width:100%;max-height:120px;border-radius:var(--r);border:1px solid var(--brd)" alt="Preview"></div>
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--brd)">
     <button class="btn bg" onclick="closeModal('m-product')">Anulează</button>
     <button class="btn bp" onclick="saveProduct()">Salvează produs</button>
@@ -980,9 +989,10 @@ function gp(id, el) {
   if (el) el.classList.add("active");
   document.getElementById("np").classList.remove("open");
   // lazy render
-  if(id==="reports")   renderReports();
-  if(id==="pipeline")  renderKanban();
-  if(id==="admin")     renderAdmin();
+  if(id==="reports")      renderReports();
+  if(id==="pipeline")     renderKanban();
+  if(id==="admin")        renderAdmin();
+  if(id==="offerbuilder") { populateOfferLeadSelect(); if(!document.getElementById("ob-rows").children.length) addProductRow(); }
 }
 
 // ============================================================
@@ -1080,9 +1090,9 @@ function renderProducts() {
   grid.innerHTML = prods.map(p=>`
     <div class="pc" style="${p.status==='inactiv'?'opacity:.55':''}">
       <div class="pc-code">${p.cod||""}</div>
-      <div class="pc-name">${p.nume||""}</div>
+      ${p.pozaUrl?`<img src="${p.pozaUrl}" style="width:100%;height:80px;object-fit:contain;border-radius:var(--r);margin-bottom:6px;border:1px solid var(--brd)" onerror="this.style.display='none'" alt="${p.nume}">`:''}<div class="pc-name">${p.nume||""}</div>
       <span class="tag ${catColors[p.categorie]||'t-gray'}" style="font-size:10.5px;margin-bottom:7px">${p.categorie||""}</span>
-      <div class="pc-price">${(p.pret||0).toLocaleString('ro-RO')} EUR</div>
+      <div class="pc-price">${(p.pret||0).toLocaleString('ro-RO')} LEI</div>
       <div style="font-size:11.5px;color:var(--mut);margin-top:3px">TVA: ${p.tva||19}% · Disc. max: ${p.discMax||0}%</div>
       <div class="pc-footer">
         <span class="tag ${p.status==='activ'?'t-green':'t-gray'}">${p.status==='activ'?'Activ':'Inactiv'}</span>
@@ -1096,6 +1106,17 @@ function renderProducts() {
 
 function filterProducts() { renderProducts(); }
 
+// Image preview
+document.addEventListener("input", function(e) {
+  if(e.target.id === "mp-poza") {
+    const url = e.target.value.trim();
+    const preview = document.getElementById("mp-poza-preview");
+    const img = document.getElementById("mp-poza-img");
+    if(url) { img.src = url; preview.style.display = "block"; }
+    else { preview.style.display = "none"; }
+  }
+});
+
 async function saveProduct() {
   const id  = document.getElementById("mp-id").value;
   const data = {
@@ -1103,11 +1124,12 @@ async function saveProduct() {
     nume: document.getElementById("mp-nume").value.trim(),
     categorie: document.getElementById("mp-cat").value,
     pret: parseFloat(document.getElementById("mp-pret").value)||0,
-    tva: parseFloat(document.getElementById("mp-tva").value)||19,
+    tva: parseFloat(document.getElementById("mp-tva").value)||21,
     discMax: parseFloat(document.getElementById("mp-disc-max").value)||0,
     status: document.getElementById("mp-status").value,
     um: document.getElementById("mp-um").value,
     descriere: document.getElementById("mp-desc").value,
+    pozaUrl: document.getElementById("mp-poza")?.value.trim() || "",
     updatedAt: new Date().toISOString(),
   };
   if(!data.cod||!data.nume) return toast("Cod și denumire sunt obligatorii.");
@@ -1125,6 +1147,8 @@ function editProduct(id) {
   document.getElementById("mp-id").value = id;
   document.getElementById("m-product-title").textContent = "Editare produs";
   ["cod","nume","pret","tva","desc"].forEach(f => { const el=document.getElementById("mp-"+f); if(el)el.value=p[f]||""; });
+  const pozaEl = document.getElementById("mp-poza");
+  if(pozaEl) { pozaEl.value = p.pozaUrl||""; if(p.pozaUrl){document.getElementById("mp-poza-img").src=p.pozaUrl;document.getElementById("mp-poza-preview").style.display="block";} }
   document.getElementById("mp-cat").value = p.categorie||"Echipamente";
   document.getElementById("mp-disc-max").value = p.discMax||0;
   document.getElementById("mp-status").value = p.status||"activ";
@@ -1199,7 +1223,7 @@ function renderLeadsTable() {
 
   if(!slice.length) { tbody.innerHTML='<tr><td colspan="11"><div class="empty"><div class="empty-icon">◎</div>Niciun lead găsit</div></td></tr>'; }
   else {
-    const statusTag={Nou:"t-gray",Contactat:"t-warn",Calificat:"t-blue",Amânat:"t-warn",Pierdut:"t-red"};
+    const statusTag={Nou:"t-gray",Contactat:"t-warn",Calificat:"t-blue",Interesat:"t-blue","Demo programat":"t-pur","Ofertă trimisă":"t-green",Amânat:"t-warn",Pierdut:"t-red"};
     tbody.innerHTML = slice.map(l => {
       const ult = l.ultimaActivitate ? new Date(l.ultimaActivitate) : null;
       const zileInactiv = ult ? Math.floor((new Date()-ult)/86400000) : null;
@@ -1310,7 +1334,7 @@ async function openLeadDetail(id) {
     <div><span style="color:var(--mut)">Județ:</span> ${l.judet||"—"}</div>
     <div><span style="color:var(--mut)">Interes:</span> ${l.interes||"—"}</div>
     <div><span style="color:var(--mut)">Responsabil:</span> ${resp?resp.name:(l.responsabil||"—")}</div>
-    <div><span style="color:var(--mut)">Valoare est.:</span> ${(l.valoare||0).toLocaleString('ro-RO')} EUR</div>
+    <div><span style="color:var(--mut)">Valoare est.:</span> ${(l.valoare||0).toLocaleString('ro-RO')} LEI</div>
     <div><span style="color:var(--mut)">Creat:</span> ${l.createdAt?new Date(l.createdAt).toLocaleDateString('ro-RO'):"—"}</div>`;
   // Jurnal
   const jurnalEl = document.getElementById("mld-jurnal");
@@ -1424,7 +1448,7 @@ function renderKanban() {
   let opps = allOpps.filter(o=>(!agent||(o.responsabilId===agent)));
   const total = opps.reduce((s,o)=>s+(parseFloat(o.valoare)||0),0);
   const totalEl = document.getElementById("pipe-total");
-  if(totalEl) totalEl.textContent = total.toLocaleString('ro-RO',{maximumFractionDigits:0})+" EUR";
+  if(totalEl) totalEl.textContent = total.toLocaleString('ro-RO',{maximumFractionDigits:0})+" LEI";
 
   board.innerHTML = ETAPE_PIPELINE.map((etapa,ei)=>{
     const cols = opps.filter(o=>(o.etapa||"Identificare")===etapa);
@@ -1436,7 +1460,7 @@ function renderKanban() {
         <div class="dn2">${o.client||""}</div>
         <div class="dc2">${o.contact||""} ${o.industrie?'· '+o.industrie:''}</div>
         <div class="df">
-          <span class="dv">${(parseFloat(o.valoare)||0).toLocaleString('ro-RO',{maximumFractionDigits:0})} EUR</span>
+          <span class="dv">${(parseFloat(o.valoare)||0).toLocaleString('ro-RO',{maximumFractionDigits:0})} LEI</span>
           <span class="da"><div class="av" style="width:18px;height:18px;font-size:9px">${initials}</div>${resp?resp.name:""}</span>
         </div>
         <div class="pbar"><div class="pfill" style="width:${prob}%;background:${ETAPE_COLORS[ei]}"></div></div>
@@ -1482,7 +1506,7 @@ async function saveOpp() {
     if(id) await db.collection("oportunitati").doc(id).update(data);
     else { data.createdAt=new Date().toISOString(); await db.collection("oportunitati").add(data); }
     toast(id?"Oportunitate actualizată.":"Oportunitate salvată."); closeModal("m-opp"); await loadOpps(); renderKanban();
-    await writeAudit(`Oportunitate ${id?"actualizată":"creată"}: ${data.client} - ${data.valoare} EUR`);
+    await writeAudit(`Oportunitate ${id?"actualizată":"creată"}: ${data.client} - ${data.valoare} LEI`);
   } catch(e){ toast("Eroare: "+e.message); }
 }
 
@@ -1573,15 +1597,24 @@ async function saveActivity() {
     await loadActivities(); await loadLeads();
     await writeAudit(`Activitate ${data.tip}: ${data.leadNume||"—"}`);
   } catch(e){ toast("Eroare: "+e.message); }
-  // Populează select lead în modal
-  const sel=document.getElementById("ma-lead");
-  if(sel.options.length<=1) allLeads.forEach(l=>{const o=document.createElement("option");o.value=l.id;o.textContent=`${l.nume||""} / ${l.companie||""}`;sel.appendChild(o);});
+  // Lead select is populated on modal open
 }
 
-// Populează lead select la deschidere modal
-document.getElementById("m-activity")?.addEventListener("click",()=>{
-  const sel=document.getElementById("ma-lead");
-  if(sel&&sel.options.length<=1) allLeads.forEach(l=>{const o=document.createElement("option");o.value=l.id;o.textContent=`${l.nume||""} / ${l.companie||""}`;sel.appendChild(o);});
+// Populează lead select la deschidere modal activitate
+function populateLeadSelect(selId) {
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+  // Clear existing options except first
+  while(sel.options.length > 1) sel.remove(1);
+  allLeads.forEach(l => {
+    const o = document.createElement("option");
+    o.value = l.id;
+    o.textContent = `${l.nume||""} ${l.companie?'/ '+l.companie:''}`;
+    sel.appendChild(o);
+  });
+}
+document.getElementById("m-activity")?.addEventListener("click", () => {
+  populateLeadSelect("ma-lead");
 });
 
 // ============================================================
@@ -1610,7 +1643,7 @@ function renderOffersTable() {
       <td><b>${o.nr||""}</b></td>
       <td>${o.client||""}</td>
       <td><button class="abt" onclick="showVersions('${o.id}')" style="font-size:11px">v${o.versiune||1} ▾</button></td>
-      <td><b>${(o.total||0).toLocaleString('ro-RO',{maximumFractionDigits:0})} EUR</b></td>
+      <td><b>${(o.total||0).toLocaleString('ro-RO',{maximumFractionDigits:0})} LEI</b></td>
       <td>${o.createdAt?new Date(o.createdAt).toLocaleDateString('ro-RO'):"—"}</td>
       <td>${valStr}</td>
       <td><span class="tag ${stTag[o.status]||'t-gray'}">${o.status||"Draft"}</span></td>
@@ -1635,8 +1668,8 @@ function addProductRow(p=null){
     <td><input class="fi" type="number" value="1" style="width:50px" id="ob-q-${id}" oninput="calcOffer()"></td>
     <td><input class="fi" type="number" value="${p?p.pret||0:0}" style="width:80px" id="ob-p-${id}" oninput="calcOffer()"></td>
     <td><input class="fi" type="number" value="0" style="width:50px" id="ob-d-${id}" oninput="calcOffer()"></td>
-    <td><input class="fi" type="number" value="${p?p.tva||19:19}" style="width:50px" id="ob-t-${id}" oninput="calcOffer()"></td>
-    <td id="ob-tot-${id}" style="font-size:12.5px;white-space:nowrap">0 EUR</td>
+    <td><input class="fi" type="number" value="${p?p.tva||21:21}" style="width:50px" id="ob-t-${id}" oninput="calcOffer()"></td>
+    <td id="ob-tot-${id}" style="font-size:12.5px;white-space:nowrap">0 LEI</td>
     <td><button class="abt" onclick="document.getElementById('ob-row-${id}').remove();calcOffer()">✕</button></td>`;
   tbody.appendChild(tr); calcOffer();
 }
@@ -1652,17 +1685,17 @@ function calcOffer(){
     const base=q*p, da=base*d, net=base-da, ta=net*t;
     sub+=base;disc+=da;tva+=ta;
     const tot=document.getElementById(`ob-tot-${i}`);
-    if(tot) tot.textContent=Math.round(net+ta).toLocaleString('ro-RO')+" EUR";
+    if(tot) tot.textContent=Math.round(net+ta).toLocaleString('ro-RO')+" LEI";
   }
   const net=sub-disc;
-  document.getElementById("ob-st").textContent=Math.round(sub).toLocaleString('ro-RO')+" EUR";
-  document.getElementById("ob-dv").textContent="-"+Math.round(disc).toLocaleString('ro-RO')+" EUR";
-  document.getElementById("ob-tv").textContent="+"+Math.round(tva).toLocaleString('ro-RO')+" EUR";
-  document.getElementById("ob-gt").textContent=Math.round(net+tva).toLocaleString('ro-RO')+" EUR";
+  document.getElementById("ob-st").textContent=Math.round(sub).toLocaleString('ro-RO')+" LEI";
+  document.getElementById("ob-dv").textContent="-"+Math.round(disc).toLocaleString('ro-RO')+" LEI";
+  document.getElementById("ob-tv").textContent="+"+Math.round(tva).toLocaleString('ro-RO')+" LEI";
+  document.getElementById("ob-gt").textContent=Math.round(net+tva).toLocaleString('ro-RO')+" LEI";
   const dp=sub>0?Math.round(disc/sub*100):0;
   const w=document.getElementById("ob-disc-warn");
-  if(w){ if(dp>25){w.style.background="var(--dngl)";w.style.borderColor="#FECACA";w.style.color="#B91C1C";w.textContent=`Limită discount: 25% · Curent: ${dp}% ⚠ Necesită aprobare!`;}
-         else{w.style.background="var(--sucl)";w.style.borderColor="#BBF7D0";w.style.color="#15803D";w.textContent=`Limită discount: 25% · Curent: ${dp}% ✓`;} }
+  if(w){ if(dp>20){w.style.background="var(--dngl)";w.style.borderColor="#FECACA";w.style.color="#B91C1C";w.textContent=`Limită discount: 20% · Curent: ${dp}% ⚠ Necesită aprobare!`;}
+         else{w.style.background="var(--sucl)";w.style.borderColor="#BBF7D0";w.style.color="#15803D";w.textContent=`Limită discount: 20% · Curent: ${dp}% ✓`;} }
 }
 
 function collectOfferRows(){
@@ -1731,7 +1764,7 @@ async function saveOffer(){
   try{
     await db.collection("oferte").add(data);
     toast("Ofertă salvată: "+nr);
-    await loadOffers(); await writeAudit(`Ofertă creată: ${nr} - ${client} - ${data.total} EUR`);
+    await loadOffers(); await writeAudit(`Ofertă creată: ${nr} - ${client} - ${data.total} LEI`);
     document.getElementById("ob-nr").textContent=nr;
     currentOfferId=null;
   }catch(e){ toast("Eroare: "+e.message); }
@@ -1744,7 +1777,7 @@ async function showVersions(id){
     <div style="font-size:12.5px;color:var(--mut);margin-bottom:12px">${o.client||""} · ${o.agent||""}</div>
     <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--bg);border-radius:var(--r)">
       <span style="font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:10px;background:var(--accl);color:#1D4ED8">v${o.versiune||1} · curentă</span>
-      <div style="flex:1"><div style="font-size:13px;font-weight:500">${(o.total||0).toLocaleString('ro-RO')} EUR · ${o.status||""}</div><div style="font-size:11.5px;color:var(--mut)">${o.createdAt?new Date(o.createdAt).toLocaleDateString('ro-RO'):""} · ${o.agent||""}</div></div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${(o.total||0).toLocaleString('ro-RO')} LEI · ${o.status||""}</div><div style="font-size:11.5px;color:var(--mut)">${o.createdAt?new Date(o.createdAt).toLocaleDateString('ro-RO'):""} · ${o.agent||""}</div></div>
       <button class="abt" onclick="generateOfferWordFromId('${o.id}')">📄 Word</button>
     </div>`;
   openModal("m-versions");
@@ -1770,7 +1803,7 @@ function filterProdPick(q){
     <tr>
       <td>${p.cod||""}</td><td>${p.nume||""}</td>
       <td><span class="tag ${catColors[p.categorie]||'t-gray'}">${p.categorie||""}</span></td>
-      <td>${(p.pret||0).toLocaleString('ro-RO')} EUR</td><td>${p.discMax||0}%</td>
+      <td>${(p.pret||0).toLocaleString('ro-RO')} LEI</td><td>${p.discMax||0}%</td>
       <td><button class="abt" onclick="addProductRow(${JSON.stringify(p).replace(/"/g,"'")});closeModal('m-prodpick')">Adaugă</button></td>
     </tr>`).join("");
 }
@@ -1796,36 +1829,62 @@ function generateOfferWord(){
 
 function generateOfferWordFromId(id){
   const o=allOffers.find(x=>x.id===id);if(!o)return;
-  _buildOfferDocx({nr:o.nr,client:o.client,contact:o.contact||"",total:o.total?.toLocaleString('ro-RO')+" EUR",rows:o.produse||[],plata:o.plata,livrare:o.livrare,garantie:o.garantie,obs:o.observatii});
+  _buildOfferDocx({nr:o.nr,client:o.client,contact:o.contact||"",total:o.total?.toLocaleString('ro-RO')+" LEI",rows:o.produse||[],plata:o.plata,livrare:o.livrare,garantie:o.garantie,obs:o.observatii});
 }
 
 function _buildOfferDocx(d){
-  const {Document,Packer,Paragraph,Table,TableRow,TableCell,TextRun,HeadingLevel,AlignmentType,WidthType,BorderStyle}=window.docx;
-  const headerCells=["Cod","Denumire","Cant.","Preț (EUR)","Disc%","TVA%","Total"].map(t=>
-    new TableCell({children:[new Paragraph({children:[new TextRun({text:t,bold:true,size:18})],alignment:AlignmentType.CENTER})],shading:{fill:"2563EB"},width:{size:14,type:WidthType.PERCENTAGE}}));
-  const bodyRows=d.rows.map(r=>{
+  const {Document,Packer,Paragraph,Table,TableRow,TableCell,TextRun,HeadingLevel,AlignmentType,WidthType,VerticalAlign,ShadingType}=window.docx;
+  const azi = new Date().toLocaleDateString('ro-RO');
+  const colHeaders = ["Nr.","Cod","Denumire produs / serviciu","U.M","Cant.","Preț LEI (TVA inclus)"];
+  const colW = [5,12,43,7,8,25];
+  const headerCells = colHeaders.map((t,i) =>
+    new TableCell({
+      children:[new Paragraph({children:[new TextRun({text:t,bold:true,size:18,color:"FFFFFF"})],alignment:AlignmentType.CENTER})],
+      shading:{fill:"1E4D8C",type:ShadingType?ShadingType.SOLID:"solid"},
+      width:{size:colW[i],type:WidthType.PERCENTAGE}
+    })
+  );
+  const bodyRows = d.rows.map((r,idx) => {
     const base=r.cantitate*r.pret, da=base*(r.discount/100), net=base-da, ta=net*(r.tva/100);
-    return new TableRow({children:[r.cod,r.denumire,String(r.cantitate),r.pret.toLocaleString('ro-RO'),r.discount+"%",r.tva+"%",Math.round(net+ta).toLocaleString('ro-RO')+" EUR"]
-      .map(txt=>new TableCell({children:[new Paragraph({children:[new TextRun({text:txt,size:18})]})]}))});
+    const total = Math.round(net+ta).toLocaleString('ro-RO')+" LEI";
+    return new TableRow({children:[
+      String(idx+1), r.cod||"", r.denumire||"", r.um||"buc", String(r.cantitate), total
+    ].map((txt,ci) => new TableCell({
+      children:[new Paragraph({children:[new TextRun({text:txt,size:18})],alignment:ci<=1||ci>=3?AlignmentType.CENTER:AlignmentType.LEFT})],
+      width:{size:colW[ci],type:WidthType.PERCENTAGE}
+    }))});
   });
-  const doc=new Document({sections:[{properties:{},children:[
-    new Paragraph({children:[new TextRun({text:"OFERTĂ COMERCIALĂ",bold:true,size:32,color:"2563EB"})],heading:HeadingLevel.HEADING_1,alignment:AlignmentType.CENTER,spacing:{after:200}}),
-    new Paragraph({children:[new TextRun({text:`Nr. ${d.nr||"—"}  ·  Data: ${new Date().toLocaleDateString('ro-RO')}`,size:20})],alignment:AlignmentType.CENTER,spacing:{after:400}}),
-    new Paragraph({children:[new TextRun({text:"Date client",bold:true,size:22,color:"1A1916"})],spacing:{before:200,after:100}}),
-    new Paragraph({children:[new TextRun({text:`Client: ${d.client||"—"}  |  Contact: ${d.contact||"—"}`,size:20})],spacing:{after:300}}),
-    new Paragraph({children:[new TextRun({text:"Produse / Servicii",bold:true,size:22})],spacing:{before:200,after:100}}),
+  let totalGeneral = 0;
+  d.rows.forEach(r=>{ const base=r.cantitate*r.pret,da=base*(r.discount/100),net=base-da,ta=net*(r.tva/100); totalGeneral+=net+ta; });
+  const doc = new Document({sections:[{properties:{},children:[
+    new Paragraph({children:[new TextRun({text:"SC 1St Medica SRL",bold:true,size:28,color:"1E4D8C"})],spacing:{after:60}}),
+    new Paragraph({children:[new TextRun({text:"Nr. ORC: J40/3954/2020  ·  CIF: RO 28254874  ·  Calea Rahovei 266-268, corp 2, et.2, birou 12D, București",size:17,color:"555555"})],spacing:{after:200}}),
+    new Paragraph({children:[new TextRun({text:"OFERTĂ DE PREȚ",bold:true,size:36,color:"1E4D8C"})],alignment:AlignmentType.CENTER,spacing:{before:100,after:80}}),
+    new Paragraph({children:[new TextRun({text:"Nr. "+( d.nr||"—")+"   |   Data: "+azi,size:20,color:"555555"})],alignment:AlignmentType.CENTER,spacing:{after:280}}),
+    new Paragraph({children:[new TextRun({text:"În atenția: ",bold:true,size:20}),new TextRun({text:(d.client||"—")+(d.contact?" — "+d.contact:""),size:20})],spacing:{after:250}}),
     new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[new TableRow({children:headerCells,tableHeader:true}),...bodyRows]}),
-    new Paragraph({children:[new TextRun({text:`TOTAL: ${d.total||"—"}`,bold:true,size:24,color:"2563EB"})],alignment:AlignmentType.RIGHT,spacing:{before:300,after:300}}),
-    new Paragraph({children:[new TextRun({text:"Termeni comerciali",bold:true,size:22})],spacing:{before:200,after:100}}),
-    new Paragraph({children:[new TextRun({text:`Plată: ${d.plata||"—"}  |  Livrare: ${d.livrare||"—"}  |  Garanție: ${d.garantie||"—"}`,size:20})],spacing:{after:200}}),
-    ...(d.obs?[new Paragraph({children:[new TextRun({text:"Observații: "+d.obs,size:20,italics:true})],spacing:{after:300}})]:[]),
-    new Paragraph({children:[new TextRun({text:"Semnătură agent: ________________________",size:20})],spacing:{before:400,after:100}}),
-    new Paragraph({children:[new TextRun({text:d.agent||"",size:20})],spacing:{after:100}}),
+    new Paragraph({children:[new TextRun({text:"PREȚ TOTAL: "+Math.round(totalGeneral).toLocaleString('ro-RO')+" LEI (TVA inclus)",bold:true,size:24,color:"1E4D8C"})],alignment:AlignmentType.RIGHT,spacing:{before:250,after:200}}),
+    new Paragraph({children:[new TextRun({text:"Condiții comerciale:",bold:true,size:20})],spacing:{before:150,after:70}}),
+    ...[
+      "Modalitate plată: "+(d.plata||"30% avans, rest la livrare"),
+      "Termen livrare: "+(d.livrare||"—"),
+      "Garanție: "+(d.garantie||"—"),
+      ...(d.obs?["Observații: "+d.obs]:[]),
+    ].map(t=>new Paragraph({children:[new TextRun({text:"• "+t,size:19})],spacing:{after:50}})),
+    new Paragraph({children:[new TextRun({text:"Servicii incluse:",bold:true,size:20})],spacing:{before:150,after:70}}),
+    ...[
+      "Livrare, instalare și instruire gratuite, oriunde în țară",
+      "Contract de service gratuit pe durata garanției",
+      "Revizii tehnice gratuite la cerere pe perioada garanției",
+      "Actualizări software gratuite pe durata de viață a dispozitivului",
+    ].map(t=>new Paragraph({children:[new TextRun({text:"• "+t,size:19})],spacing:{after:50}})),
+    new Paragraph({children:[new TextRun({text:"Agent vânzări: "+(d.agent||""),bold:false,size:20})],spacing:{before:280,after:60}}),
+    new Paragraph({children:[new TextRun({text:"Semnătură: ________________________",size:20})],spacing:{after:60}}),
   ]}]});
   Packer.toBlob(doc).then(blob=>{
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-    a.download=`Oferta_${d.nr||"noua"}_${d.client||"client"}.docx`.replace(/\s/g,"_");
-    a.click(); toast("Ofertă descărcată.");
+    a.download=("Oferta_"+(d.nr||"noua")+"_"+(d.client||"client")+".docx").replace(/\s/g,"_");
+    a.click(); toast("Ofertă generată: "+a.download);
   });
 }
 
@@ -1847,6 +1906,38 @@ async function sendOfferEmail(){
     toast("Email trimis către "+email);
     await writeAudit(`Email ofertă trimis către: ${email}`);
   } catch(e){ toast("Eroare trimitere email: "+e.message); }
+}
+
+
+// ============================================================
+// OFFER BUILDER — prefill din lead
+// ============================================================
+function prefillFromLead(leadId) {
+  if(!leadId) return;
+  const l = allLeads.find(x => x.id === leadId);
+  if(!l) return;
+  document.getElementById("ob-client").value  = l.companie || l.nume || "";
+  document.getElementById("ob-contact").value = l.nume || "";
+  document.getElementById("ob-email").value   = l.email || "";
+  document.getElementById("ob-tel").value     = l.telefon || "";
+  document.getElementById("ob-judet").value   = l.judet || "";
+  // Auto-add product of interest if exists
+  if(l.interesId) {
+    const p = allProducts.find(x => x.id === l.interesId);
+    if(p) addProductRow(p);
+  }
+}
+
+function populateOfferLeadSelect() {
+  const sel = document.getElementById("ob-lead-select");
+  if(!sel) return;
+  while(sel.options.length > 1) sel.remove(1);
+  allLeads.filter(l => !["Pierdut"].includes(l.status)).forEach(l => {
+    const o = document.createElement("option");
+    o.value = l.id;
+    o.textContent = `${l.nume||""} ${l.companie?'/ '+l.companie:''}`;
+    sel.appendChild(o);
+  });
 }
 
 // ============================================================
@@ -1872,7 +1963,7 @@ async function loadDashboard(){
 
   // Pipeline total
   const pipelineTotal=allOpps.filter(o=>!["Câștigat","Pierdut"].includes(o.etapa)).reduce((s,o)=>s+(o.valoare||0),0);
-  document.getElementById("d-pipeline").textContent=pipelineTotal.toLocaleString('ro-RO',{maximumFractionDigits:0})+" EUR";
+  document.getElementById("d-pipeline").textContent=pipelineTotal.toLocaleString('ro-RO',{maximumFractionDigits:0})+" LEI";
 
   // Leaduri inactive
   const inactive=allLeads.filter(l=>{
@@ -1900,7 +1991,7 @@ async function loadDashboard(){
   const alerts=[];
   allLeads.filter(l=>{const z=l.ultimaActivitate?Math.floor((new Date()-new Date(l.ultimaActivitate))/86400000):999;return z>=1&&!l.responsabilId;}).slice(0,2).forEach(l=>alerts.push({type:"r",text:`Lead fără responsabil: ${l.nume}`,sub:"Alocare necesară"}));
   allLeads.filter(l=>{if(!l.followup)return false;const fu=new Date(l.followup);return fu<azi;}).slice(0,3).forEach(l=>alerts.push({type:"w",text:`Follow-up depășit: ${l.nume}`,sub:`Data: ${new Date(l.followup).toLocaleDateString('ro-RO')}`}));
-  allOffers.filter(o=>{if(!o.valabilitatePana||o.status==="Acceptată")return false;const v=new Date(o.valabilitatePana);const diff=Math.ceil((v-new Date())/86400000);return diff>=0&&diff<=3;}).slice(0,2).forEach(o=>alerts.push({type:"w",text:`Ofertă expiră curând: ${o.nr}`,sub:`${(o.total||0).toLocaleString('ro-RO')} EUR · ${o.client}`}));
+  allOffers.filter(o=>{if(!o.valabilitatePana||o.status==="Acceptată")return false;const v=new Date(o.valabilitatePana);const diff=Math.ceil((v-new Date())/86400000);return diff>=0&&diff<=3;}).slice(0,2).forEach(o=>alerts.push({type:"w",text:`Ofertă expiră curând: ${o.nr}`,sub:`${(o.total||0).toLocaleString('ro-RO')} LEI · ${o.client}`}));
   const alertEl=document.getElementById("dash-alerts");
   const alertCount=document.getElementById("dash-alert-count");
   if(alertCount) alertCount.textContent=alerts.length;
@@ -1934,7 +2025,7 @@ function renderReports(){
   document.getElementById("r-conv").textContent=conv+"%";
 
   const valTotal=offersIn.reduce((s,o)=>s+(o.total||0),0);
-  document.getElementById("r-val").textContent=valTotal.toLocaleString('ro-RO',{maximumFractionDigits:0})+" EUR";
+  document.getElementById("r-val").textContent=valTotal.toLocaleString('ro-RO',{maximumFractionDigits:0})+" LEI";
 
   // Per agent
   const byAgent={};
