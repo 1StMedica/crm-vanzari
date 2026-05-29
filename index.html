@@ -531,7 +531,7 @@ tr:hover td{background:#FAFAF8}
   <!-- ======================== PRODUCTS ======================== -->
   <div id="p-products" class="pg">
     <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
-      <select class="fi" style="width:140px" id="f-prod-cat" onchange="filterProducts()"><option value="">Toate categoriile</option><option>Echipamente</option><option>Servicii</option><option>Piese schimb</option></select>
+      <select class="fi" style="width:140px" id="f-prod-cat" onchange="filterProducts()"><option value="">Toate categoriile</option><option>Echipamente</option><option>Servicii</option><option>Accesorii</option></select>
       <select class="fi" style="width:110px" id="f-prod-status" onchange="filterProducts()"><option value="">Activ & Inactiv</option><option value="activ">Activ</option><option value="inactiv">Inactiv</option></select>
       <button class="btn bp" style="margin-left:auto" onclick="openModal('m-product')">+ Produs nou</button>
     </div>
@@ -777,7 +777,7 @@ tr:hover td{background:#FAFAF8}
     <div class="fr"><label class="fl">Cod *</label><input class="fi" id="mp-cod" placeholder="PRD-001"></div>
     <div class="fr"><label class="fl">Denumire *</label><input class="fi" id="mp-nume" placeholder="Sistem automat XL"></div>
     <div class="fr"><label class="fl">Categorie</label>
-      <select class="fi" id="mp-cat"><option>Echipamente</option><option>Servicii</option><option>Piese schimb</option></select>
+      <select class="fi" id="mp-cat"><option>Echipamente</option><option>Servicii</option><option>Accesorii</option></select>
     </div>
     <div class="fr"><label class="fl">Preț (LEI) *</label><input class="fi" id="mp-pret" type="number" placeholder="0"></div>
     <div class="fr"><label class="fl">TVA (%)</label><input class="fi" id="mp-tva" type="number" value="21"></div>
@@ -1086,7 +1086,7 @@ function renderProducts() {
   const grid = document.getElementById("products-grid");
   if(!grid) return;
   if(!prods.length) { grid.innerHTML='<div class="empty"><div class="empty-icon">📦</div>Niciun produs în catalog</div>'; return; }
-  const catColors = {Echipamente:"t-green",Servicii:"t-blue","Piese schimb":"t-warn"};
+  const catColors = {Echipamente:"t-green",Servicii:"t-blue","Accesorii":"t-warn"};
   grid.innerHTML = prods.map(p=>`
     <div class="pc" style="${p.status==='inactiv'?'opacity:.55':''}">
       <div class="pc-code">${p.cod||""}</div>
@@ -1666,7 +1666,7 @@ function addProductRow(p=null){
   const tr=document.createElement("tr");
   tr.id="ob-row-"+id;
   if(p&&p.id) tr.dataset.productId=p.id;
-  const disc = (p&&p.discMax!==undefined) ? p.discMax : 0;
+  const disc = 0; // Default discount 0% - agentul seteaza manual
   const tva  = (p&&p.tva) ? p.tva : 21;
   const pret = (p&&p.pret) ? p.pret : 0;
   const cod  = (p&&p.cod) ? p.cod : "";
@@ -1843,7 +1843,7 @@ function filterProdPick(q){
     p.nume?.toLowerCase().includes(qq)||
     p.descriere?.toLowerCase().includes(qq)
   ));
-  const catColors={Echipamente:"t-green",Servicii:"t-blue","Piese schimb":"t-warn"};
+  const catColors={Echipamente:"t-green",Servicii:"t-blue","Accesorii":"t-warn"};
   if(!prods.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--mut)">Niciun produs găsit</td></tr>';return;}
   tb.innerHTML=prods.map(p=>{
     const pid=p.id;
