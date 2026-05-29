@@ -403,7 +403,7 @@ tr:hover td{background:#FAFAF8}
   <!-- ======================== OFFERS ======================== -->
   <div id="p-offers" class="pg">
     <div style="display:flex;gap:8px;margin-bottom:14px">
-      <select class="fi" style="width:140px" id="f-offer-status"><option value="">Toate statusurile</option><option>Draft</option><option>Trimisă</option><option>Acceptată</option><option>Respinsă</option><option>Expirată</option></select>
+      <select class="fi" style="width:140px" id="f-offer-status"><option value="">Toate statusurile</option><option>Draft</option><option>Trimisă</option><option>Acceptată</option><option>Respinsă</option><option>Expirată</option><option>Pending aprobare</option></select>
       <select class="fi" style="width:120px" id="f-offer-agent"><option value="">Toți agenții</option></select>
       <button class="btn bp" style="margin-left:auto" onclick="gp('offerbuilder',null)">+ Ofertă nouă</button>
     </div>
@@ -486,7 +486,7 @@ tr:hover td{background:#FAFAF8}
           <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
             <button class="btn bg" style="width:100%;justify-content:center" onclick="generateOfferWord()">📄 Generează Word (.docx)</button>
             <button class="btn bg" style="width:100%;justify-content:center" onclick="sendOfferEmail()">✉ Trimite pe email</button>
-            <button class="btn bp" style="width:100%;justify-content:center" onclick="saveOffer()">💾 Salvează oferta</button>
+            <button class="btn bp" id="ob-save-btn" style="width:100%;justify-content:center" onclick="saveOffer()">💾 Salvează oferta</button>
           </div>
           <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--brd)">
             <div class="fr"><label class="fl">Status ofertă</label>
@@ -787,7 +787,7 @@ tr:hover td{background:#FAFAF8}
     </div>
     <div class="fr"><label class="fl">UM</label><input class="fi" id="mp-um" value="buc" placeholder="buc / oră / proiect"></div>
   </div>
-  <div class="fr"><label class="fl">Descriere</label><textarea class="fi" id="mp-desc" rows="2" placeholder="Descriere scurtă produs..."></textarea></div>
+  <div class="fr"><label class="fl">Descriere</label><textarea class="fi" id="mp-desc" rows="8" style="resize:vertical;min-height:120px" placeholder="Descriere completă / specificații tehnice (fără limită)..."></textarea></div>
   <div class="fr"><label class="fl">URL Poză produs</label><input class="fi" id="mp-poza" type="url" placeholder="https://..."></div>
   <div id="mp-poza-preview" style="display:none;margin-top:6px"><img id="mp-poza-img" style="max-width:100%;max-height:120px;border-radius:var(--r);border:1px solid var(--brd)" alt="Preview"></div>
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--brd)">
@@ -799,9 +799,9 @@ tr:hover td{background:#FAFAF8}
 <!-- Selectare produs din catalog (offer builder) -->
 <div id="m-prodpick" class="mo" style="display:none"><div class="md" onclick="event.stopPropagation()">
   <div class="mh"><div class="mt">Adaugă din catalog</div><div class="mx" onclick="closeModal('m-prodpick')">✕</div></div>
-  <div class="fr"><input class="fi" placeholder="🔍 Caută produs..." oninput="filterProdPick(this.value)" id="prodpick-search"></div>
+  <div class="fr"><input class="fi" placeholder="🔍 Caută cod sau denumire..." oninput="filterProdPick(this.value)" id="prodpick-search"></div>
   <div class="tw2"><table>
-    <thead><tr><th>Cod</th><th>Denumire</th><th>Categorie</th><th>Preț</th><th>Disc. max</th><th></th></tr></thead>
+    <thead><tr><th>Cod</th><th>Denumire</th><th>Categorie</th><th>Preț (LEI)</th><th>TVA%</th><th>Disc.max%</th><th></th></tr></thead>
     <tbody id="prodpick-tbody"></tbody>
   </table></div>
 </div></div>
@@ -1634,7 +1634,7 @@ function renderOffersTable() {
   let offers = allOffers.filter(o=>(!st||o.status===st)&&(!ag||(o.agentId===ag)));
   const tbody=document.getElementById("offers-tbody");if(!tbody)return;
   if(!offers.length){tbody.innerHTML='<tr><td colspan="9"><div class="empty">Nicio ofertă</div></td></tr>';return;}
-  const stTag={Draft:"t-gray",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn"};
+  const stTag={Draft:"t-gray",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn","Pending aprobare":"t-warn"};
   const azi=new Date();
   tbody.innerHTML=offers.map(o=>{
     const val=o.valabilitatePana?new Date(o.valabilitatePana):null;
@@ -1651,6 +1651,9 @@ function renderOffersTable() {
       <td style="white-space:nowrap">
         <button class="abt" onclick="generateOfferWordFromId('${o.id}')">📄 Word</button>
         <button class="abt" onclick="duplicateOffer('${o.id}')">Duplică</button>
+        ${o.status==="Pending aprobare" && (currentUserData?.role==="manager"||currentUserData?.role==="admin") ? 
+          `<button class="abt" style="color:var(--suc);border-color:var(--suc)" onclick="approveOffer('${o.id}',true)">✓ Aprobă</button>
+           <button class="abt" style="color:var(--dng);border-color:var(--dng)" onclick="approveOffer('${o.id}',false)">✕ Respinge</button>` : ""}
       </td>
     </tr>`;
   }).join("");
@@ -1661,17 +1664,40 @@ function addProductRow(p=null){
   const id=offerRowCount++;
   const tbody=document.getElementById("ob-rows");
   const tr=document.createElement("tr");
-  tr.id=`ob-row-${id}`;
-  tr.innerHTML=`
-    <td><input class="fi" value="${p?p.cod||"":""}" style="width:70px" id="ob-cod-${id}"></td>
-    <td><input class="fi" value="${p?p.nume||"":""}" style="min-width:120px" id="ob-den-${id}"></td>
-    <td><input class="fi" type="number" value="1" style="width:50px" id="ob-q-${id}" oninput="calcOffer()"></td>
-    <td><input class="fi" type="number" value="${p?p.pret||0:0}" style="width:80px" id="ob-p-${id}" oninput="calcOffer()"></td>
-    <td><input class="fi" type="number" value="0" style="width:50px" id="ob-d-${id}" oninput="calcOffer()"></td>
-    <td><input class="fi" type="number" value="${p?p.tva||21:21}" style="width:50px" id="ob-t-${id}" oninput="calcOffer()"></td>
-    <td id="ob-tot-${id}" style="font-size:12.5px;white-space:nowrap">0 LEI</td>
-    <td><button class="abt" onclick="document.getElementById('ob-row-${id}').remove();calcOffer()">✕</button></td>`;
-  tbody.appendChild(tr); calcOffer();
+  tr.id="ob-row-"+id;
+  if(p&&p.id) tr.dataset.productId=p.id;
+  const disc = (p&&p.discMax!==undefined) ? p.discMax : 0;
+  const tva  = (p&&p.tva) ? p.tva : 21;
+  const pret = (p&&p.pret) ? p.pret : 0;
+  const cod  = (p&&p.cod) ? p.cod : "";
+  const den  = (p&&p.nume) ? p.nume : "";
+  tr.innerHTML =
+    `<td><input class="fi" value="${cod}" style="width:70px" id="ob-cod-${id}"></td>`+
+    `<td><input class="fi" value="${den}" style="min-width:130px" id="ob-den-${id}"></td>`+
+    `<td><input class="fi" type="number" value="1" style="width:55px" id="ob-q-${id}" oninput="calcOffer()"></td>`+
+    `<td><input class="fi" type="number" value="${pret}" style="width:85px" id="ob-p-${id}" oninput="calcOffer()"></td>`+
+    `<td><input class="fi" type="number" value="${disc}" min="0" max="100" style="width:55px" id="ob-d-${id}" oninput="calcOffer()"></td>`+
+    `<td><input class="fi" type="number" value="${tva}" style="width:55px" id="ob-t-${id}" oninput="calcOffer()"></td>`+
+    `<td id="ob-tot-${id}" style="font-size:12.5px;white-space:nowrap">0 LEI</td>`+
+    `<td><button class="abt" onclick="removeRow(${id})">✕</button></td>`;
+  tbody.appendChild(tr);
+  updateProdVisibility();
+  calcOffer();
+}
+
+function removeRow(id) {
+  const row = document.getElementById("ob-row-"+id);
+  if(row) row.remove();
+  updateProdVisibility();
+  calcOffer();
+}
+
+function updateProdVisibility() {
+  const rows = document.querySelectorAll("#ob-rows tr");
+  const empty = document.getElementById("ob-prod-empty");
+  const wrap  = document.getElementById("ob-prod-table-wrap");
+  if(empty) empty.style.display = rows.length>0 ? "none" : "block";
+  if(wrap)  wrap.style.display  = rows.length>0 ? "block" : "none";
 }
 
 function calcOffer(){
@@ -1694,21 +1720,35 @@ function calcOffer(){
   document.getElementById("ob-gt").textContent=Math.round(net+tva).toLocaleString('ro-RO')+" LEI";
   const dp=sub>0?Math.round(disc/sub*100):0;
   const w=document.getElementById("ob-disc-warn");
-  if(w){ if(dp>20){w.style.background="var(--dngl)";w.style.borderColor="#FECACA";w.style.color="#B91C1C";w.textContent=`Limită discount: 20% · Curent: ${dp}% ⚠ Necesită aprobare!`;}
-         else{w.style.background="var(--sucl)";w.style.borderColor="#BBF7D0";w.style.color="#15803D";w.textContent=`Limită discount: 20% · Curent: ${dp}% ✓`;} }
+  if(w){ if(dp>20){w.style.background="var(--dngl)";w.style.borderColor="#FECACA";w.style.color="#B91C1C";w.textContent=`Limită discount: 20% · Curent: ${dp}% ⚠ Necesită aprobare manager!`;}
+         else if(dp>0){w.style.background="var(--sucl)";w.style.borderColor="#BBF7D0";w.style.color="#15803D";w.textContent=`Discount: ${dp}% ✓ (sub limita de 20%)`;}
+         else{w.style.background="var(--bg)";w.style.borderColor="var(--brd)";w.style.color="var(--mut)";w.textContent="Niciun discount aplicat.";} }
+  // show/hide approval banner
+  const banner=document.getElementById("ob-approval-banner");
+  if(banner) banner.style.display = dp>20 ? "flex" : "none";
+  // update save button
+  const saveBtn=document.getElementById("ob-save-btn");
+  if(saveBtn){
+    if(dp>20){saveBtn.textContent="⏳ Salvează (necesită aprobare)";saveBtn.style.opacity="0.7";}
+    else{saveBtn.textContent="💾 Salvează oferta";saveBtn.style.opacity="1";}
+  }
 }
 
 function collectOfferRows(){
   const rows=[];
   for(let i=0;i<offerRowCount;i++){
-    const row=document.getElementById(`ob-row-${i}`);if(!row)continue;
+    const row=document.getElementById("ob-row-"+i);if(!row)continue;
+    const cod = document.getElementById("ob-cod-"+i)?.value||"";
+    const prod = allProducts.find(p=>p.cod===cod);
     rows.push({
-      cod:document.getElementById(`ob-cod-${i}`)?.value||"",
-      denumire:document.getElementById(`ob-den-${i}`)?.value||"",
-      cantitate:parseFloat(document.getElementById(`ob-q-${i}`)?.value)||0,
-      pret:parseFloat(document.getElementById(`ob-p-${i}`)?.value)||0,
-      discount:parseFloat(document.getElementById(`ob-d-${i}`)?.value)||0,
-      tva:parseFloat(document.getElementById(`ob-t-${i}`)?.value)||19,
+      cod,
+      denumire: document.getElementById("ob-den-"+i)?.value||"",
+      cantitate: parseFloat(document.getElementById("ob-q-"+i)?.value)||0,
+      pret:      parseFloat(document.getElementById("ob-p-"+i)?.value)||0,
+      discount:  parseFloat(document.getElementById("ob-d-"+i)?.value)||0,
+      tva:       parseFloat(document.getElementById("ob-t-"+i)?.value)||21,
+      um:        prod?.um || "buc",
+      productId: row.dataset?.productId || "",
     });
   }
   return rows;
@@ -1797,15 +1837,34 @@ async function duplicateOffer(id){
 // ============================================================
 function filterProdPick(q){
   const tb=document.getElementById("prodpick-tbody");
-  const prods=allProducts.filter(p=>p.status==="activ"&&(!q||p.cod?.toLowerCase().includes(q.toLowerCase())||p.nume?.toLowerCase().includes(q.toLowerCase())));
+  const qq=(q||"").toLowerCase();
+  const prods=allProducts.filter(p=>p.status==="activ"&&(!qq||
+    p.cod?.toLowerCase().includes(qq)||
+    p.nume?.toLowerCase().includes(qq)||
+    p.descriere?.toLowerCase().includes(qq)
+  ));
   const catColors={Echipamente:"t-green",Servicii:"t-blue","Piese schimb":"t-warn"};
-  tb.innerHTML=prods.map(p=>`
-    <tr>
-      <td>${p.cod||""}</td><td>${p.nume||""}</td>
-      <td><span class="tag ${catColors[p.categorie]||'t-gray'}">${p.categorie||""}</span></td>
-      <td>${(p.pret||0).toLocaleString('ro-RO')} LEI</td><td>${p.discMax||0}%</td>
-      <td><button class="abt" onclick="addProductRow(${JSON.stringify(p).replace(/"/g,"'")});closeModal('m-prodpick')">Adaugă</button></td>
-    </tr>`).join("");
+  if(!prods.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--mut)">Niciun produs găsit</td></tr>';return;}
+  tb.innerHTML=prods.map(p=>{
+    const pid=p.id;
+    return `<tr>
+      <td style="font-size:12px">${p.cod||""}</td>
+      <td>
+        <div style="font-weight:500">${p.nume||""}</div>
+        ${p.descriere?`<div style="font-size:11px;color:var(--mut);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.descriere.substring(0,80)}${p.descriere.length>80?"...":""}</div>`:""}
+      </td>
+      <td><span class="tag ${catColors[p.categorie]||"t-gray"}">${p.categorie||""}</span></td>
+      <td style="font-weight:500">${(p.pret||0).toLocaleString("ro-RO")} LEI</td>
+      <td>${p.tva||21}%</td>
+      <td>${p.discMax!==undefined?p.discMax:0}%</td>
+      <td><button class="btn bp bs" onclick="addFromCatalog('${pid}')">+ Adaugă</button></td>
+    </tr>`;
+  }).join("");
+}
+
+function addFromCatalog(pid) {
+  const p = allProducts.find(x=>x.id===pid);
+  if(p) { addProductRow(p); closeModal("m-prodpick"); }
 }
 document.getElementById("m-prodpick")?.addEventListener("click",()=>{ if(!document.getElementById("prodpick-search").value) filterProdPick(""); });
 
@@ -1815,21 +1874,39 @@ document.getElementById("m-prodpick")?.addEventListener("click",()=>{ if(!docume
 function generateOfferWord(){
   const rows=collectOfferRows();
   if(!rows.length){ toast("Adaugă cel puțin un produs."); return; }
+  // Enrich with product descriptions from catalog
+  const enrichedRows = rows.map(r => {
+    const prod = allProducts.find(p => p.cod===r.cod || p.id===document.querySelector(`#ob-rows tr[data-product-id]`)?.dataset?.productId);
+    const prodByCod = allProducts.find(p => p.cod===r.cod);
+    return {...r, descriere: prodByCod?.descriere || "", um: prodByCod?.um || "buc"};
+  });
   const client=document.getElementById("ob-client").value||"—";
   const contact=document.getElementById("ob-contact").value||"—";
-  const total=document.getElementById("ob-gt").textContent;
   const nr=document.getElementById("ob-nr").textContent||"Ofertă";
-  _buildOfferDocx({nr,client,contact,total,rows,
+  _buildOfferDocx({
+    nr, client, contact,
+    rows: enrichedRows,
     plata:document.getElementById("ob-plata").value,
     livrare:document.getElementById("ob-livrare").value,
     garantie:document.getElementById("ob-garantie").value,
     obs:document.getElementById("ob-obs").value,
+    agent: currentUserData?.name || currentUser?.email || "",
   });
 }
 
 function generateOfferWordFromId(id){
   const o=allOffers.find(x=>x.id===id);if(!o)return;
-  _buildOfferDocx({nr:o.nr,client:o.client,contact:o.contact||"",total:o.total?.toLocaleString('ro-RO')+" LEI",rows:o.produse||[],plata:o.plata,livrare:o.livrare,garantie:o.garantie,obs:o.observatii});
+  // Enrich rows with product descriptions
+  const enrichedRows = (o.produse||[]).map(r => {
+    const prod = allProducts.find(p => p.cod===r.cod);
+    return {...r, descriere: prod?.descriere||r.descriere||"", um: prod?.um||r.um||"buc"};
+  });
+  _buildOfferDocx({
+    nr:o.nr, client:o.client, contact:o.contact||"",
+    rows: enrichedRows,
+    plata:o.plata, livrare:o.livrare, garantie:o.garantie,
+    obs:o.observatii, agent:o.agent||""
+  });
 }
 
 function _buildOfferDocx(d){
@@ -1880,12 +1957,39 @@ function _buildOfferDocx(d){
     ].map(t=>new Paragraph({children:[new TextRun({text:"• "+t,size:19})],spacing:{after:50}})),
     new Paragraph({children:[new TextRun({text:"Agent vânzări: "+(d.agent||""),bold:false,size:20})],spacing:{before:280,after:60}}),
     new Paragraph({children:[new TextRun({text:"Semnătură: ________________________",size:20})],spacing:{after:60}}),
+    // Specificatii tehnice - only if any product has description
+    ...(() => {
+      const withDesc = d.rows.filter(r => r.descriere && r.descriere.trim());
+      if(!withDesc.length) return [];
+      const specs = [
+        new Paragraph({children:[new TextRun({text:"",size:20})],spacing:{before:200,after:100}}),
+        new Paragraph({children:[new TextRun({text:"SPECIFICAȚII TEHNICE",bold:true,size:24,color:"1E4D8C"})],spacing:{before:200,after:150}}),
+      ];
+      withDesc.forEach(r => {
+        specs.push(new Paragraph({children:[new TextRun({text:(r.cod?r.cod+" — ":"")+r.denumire,bold:true,size:20,color:"1E4D8C"})],spacing:{before:150,after:80}}));
+        // Split description by newlines
+        const lines = r.descriere.split("\n");
+        lines.forEach(line => {
+          if(line.trim()) specs.push(new Paragraph({children:[new TextRun({text:line.trim(),size:18})],spacing:{after:40}}));
+        });
+      });
+      return specs;
+    })(),
   ]}]});
   Packer.toBlob(doc).then(blob=>{
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
     a.download=("Oferta_"+(d.nr||"noua")+"_"+(d.client||"client")+".docx").replace(/\s/g,"_");
     a.click(); toast("Ofertă generată: "+a.download);
   });
+}
+
+function _buildOfferDocxWithSpecs(d) {
+  // Enrich rows with product descriptions from catalog
+  const enrichedRows = d.rows.map(r => {
+    const prod = allProducts.find(p => p.cod === r.cod || p.nume === r.denumire);
+    return {...r, descriere: prod?.descriere || r.descriere || ""};
+  });
+  _buildOfferDocx({...d, rows: enrichedRows});
 }
 
 // ============================================================
@@ -1938,6 +2042,87 @@ function populateOfferLeadSelect() {
     o.textContent = `${l.nume||""} ${l.companie?'/ '+l.companie:''}`;
     sel.appendChild(o);
   });
+}
+
+
+// ============================================================
+// APPROVAL WORKFLOW
+// ============================================================
+async function requestApproval() {
+  const client  = document.getElementById("ob-client").value.trim() || "—";
+  const total   = document.getElementById("ob-gt").textContent;
+  const discEl  = document.getElementById("ob-disc-warn");
+  const discTxt = discEl ? discEl.textContent : "";
+  const statusEl = document.getElementById("ob-approval-status");
+  
+  // Find managers
+  const managers = allUsers.filter(u => u.role === "manager" || u.role === "admin");
+  if(!managers.length) { toast("Niciun manager găsit în sistem."); return; }
+  
+  // Save offer as "Pending aprobare"
+  const rows = collectOfferRows();
+  if(!rows.length) { toast("Adaugă produse înainte de a solicita aprobare."); return; }
+  
+  let approvalSaved = false;
+  try {
+    const nr = await getNextOfferNr();
+    const data = {
+      nr, client,
+      contact:    document.getElementById("ob-contact").value.trim(),
+      produse:    rows,
+      total:      parseTotal(),
+      status:     "Pending aprobare",
+      discount:   discTxt,
+      agentId:    currentUser.uid,
+      agent:      currentUserData?.name || currentUser.email,
+      createdAt:  new Date().toISOString(),
+      approvalRequestedAt: new Date().toISOString(),
+      approvalRequestedBy: currentUserData?.name || currentUser.email,
+    };
+    await db.collection("oferte").add(data);
+    approvalSaved = true;
+    toast("Ofertă salvată cu status 'Pending aprobare'.");
+    await loadOffers();
+  } catch(e) { toast("Eroare salvare: "+e.message); return; }
+
+  // Send email to managers via EmailJS
+  const managerEmails = managers.map(m=>m.email).filter(Boolean).join(";");
+  if(managerEmails && EMAILJS_SERVICE_ID !== "EMAILJS_SERVICE_ID") {
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_email: managerEmails,
+        name: "Manager",
+        subject: "Aprobare discount necesar — Ofertă "+client,
+        message: `Agentul ${currentUserData?.name||currentUser.email} a creat o ofertă pentru ${client} cu valoarea ${parseTotal().toLocaleString("ro-RO")} LEI.
+
+${discTxt}
+
+Oferta necesită aprobarea dvs. Intrați în CRM pentru a o aproba sau respinge.`,
+      });
+      if(statusEl) { statusEl.textContent = "✓ Solicitare trimisă managerilor"; statusEl.style.color = "var(--suc)"; }
+    } catch(e) { 
+      if(statusEl) { statusEl.textContent = "⚠ Email netrimis (configurare EmailJS lipsă)"; statusEl.style.color = "var(--wrn)"; }
+    }
+  } else {
+    if(statusEl) { statusEl.textContent = "✓ Ofertă salvată — notifică managerul manual"; statusEl.style.color = "var(--wrn)"; }
+  }
+  
+  // In-app notification
+  await writeAudit(`Solicitare aprobare discount: ofertă ${client} - ${discTxt}`);
+}
+
+async function approveOffer(offerId, approved) {
+  const status = approved ? "Draft" : "Respinsă";
+  const note   = approved ? "Discount aprobat de manager." : "Discount respins de manager.";
+  await db.collection("oferte").doc(offerId).update({
+    status,
+    approvedBy: currentUserData?.name || currentUser.email,
+    approvedAt: new Date().toISOString(),
+    approvalNote: note,
+  });
+  toast(approved ? "Ofertă aprobată ✓" : "Ofertă respinsă.");
+  await loadOffers();
+  await writeAudit(note + " Ofertă ID: " + offerId);
 }
 
 // ============================================================
