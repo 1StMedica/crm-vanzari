@@ -662,7 +662,7 @@ tr:hover td{background:#FAFAF8}
     <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
       <select class="fi" style="width:140px" id="f-prod-cat" onchange="filterProducts()"><option value="">Toate categoriile</option><option>Echipamente</option><option>Servicii</option><option>Accesorii</option></select>
       <select class="fi" style="width:110px" id="f-prod-status" onchange="filterProducts()"><option value="">Activ & Inactiv</option><option value="activ">Activ</option><option value="inactiv">Inactiv</option></select>
-      <button class="btn bp" style="margin-left:auto" onclick="openModal('m-product')">+ Produs nou</button>
+      <button class="btn bp" style="margin-left:auto" onclick="newProduct()">+ Produs nou</button>
     </div>
     <div class="pgrid" id="products-grid"><div class="loading"><div class="spin"></div></div></div>
   </div>
@@ -941,8 +941,21 @@ tr:hover td{background:#FAFAF8}
     <div class="fr"><label class="fl">UM</label><input class="fi" id="mp-um" value="buc" placeholder="buc / oră / proiect"></div>
   </div>
   <div class="fr"><label class="fl">Descriere</label><textarea class="fi" id="mp-desc" rows="8" style="resize:vertical;min-height:120px" placeholder="Descriere completă / specificații tehnice (fără limită)..."></textarea></div>
-  <div class="fr"><label class="fl">URL Poză produs</label><input class="fi" id="mp-poza" type="url" placeholder="https://..."></div>
-  <div id="mp-poza-preview" style="display:none;margin-top:6px"><img id="mp-poza-img" style="max-width:100%;max-height:120px;border-radius:var(--r);border:1px solid var(--brd)" alt="Preview"></div>
+  <div class="fr">
+    <label class="fl">Poză produs (din calculator)</label>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <label class="btn bg bs" style="cursor:pointer;margin:0">
+        📎 Alege fișier
+        <input type="file" id="mp-poza-file" accept="image/*" style="display:none" onchange="handlePozaUpload(this)">
+      </label>
+      <span id="mp-poza-fname" style="font-size:12px;color:var(--mut)">Niciun fișier selectat</span>
+      <button class="abt" id="mp-poza-clear" onclick="clearPoza()" style="display:none">✕ Șterge poza</button>
+    </div>
+    <div id="mp-poza-preview" style="display:none;margin-top:8px">
+      <img id="mp-poza-img" style="max-width:100%;max-height:150px;border-radius:var(--r);border:1px solid var(--brd);object-fit:contain" alt="Preview">
+    </div>
+    <input type="hidden" id="mp-poza-data">
+  </div>
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--brd)">
     <button class="btn bg" onclick="closeModal('m-product')">Anulează</button>
     <button class="btn bp" onclick="saveProduct()">Salvează produs</button>
@@ -1492,31 +1505,49 @@ function renderProducts() {
 
 function filterProducts() { renderProducts(); }
 
-// Image preview
-document.addEventListener("input", function(e) {
-  if(e.target.id === "mp-poza") {
-    const url = e.target.value.trim();
-    const preview = document.getElementById("mp-poza-preview");
-    const img = document.getElementById("mp-poza-img");
-    if(url) { img.src = url; preview.style.display = "block"; }
-    else { preview.style.display = "none"; }
-  }
-});
+// File upload pentru poza produs
+function handlePozaUpload(input) {
+  const file = input.files[0];
+  if(!file) return;
+  // Validare tip si marime
+  if(!file.type.startsWith("image/")) { toast("Selectează un fișier imagine (JPG, PNG, GIF, WebP)."); return; }
+  if(file.size > 500*1024) { toast("Imaginea este prea mare (max 500 KB). Te rugăm să o comprimezi înainte."); input.value=""; return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    document.getElementById("mp-poza-data").value = base64;
+    document.getElementById("mp-poza-img").src = base64;
+    document.getElementById("mp-poza-preview").style.display = "block";
+    document.getElementById("mp-poza-fname").textContent = file.name + " (" + (file.size/1024).toFixed(1) + " KB)";
+    document.getElementById("mp-poza-clear").style.display = "inline-flex";
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPoza() {
+  document.getElementById("mp-poza-data").value = "";
+  document.getElementById("mp-poza-file").value = "";
+  document.getElementById("mp-poza-fname").textContent = "Niciun fișier selectat";
+  document.getElementById("mp-poza-preview").style.display = "none";
+  document.getElementById("mp-poza-clear").style.display = "none";
+}
 
 async function saveProduct() {
   const id  = document.getElementById("mp-id").value;
+  const descriereVal = document.getElementById("mp-desc").value || "";
+  const pozaData = document.getElementById("mp-poza-data").value || "";
   const data = {
-    cod: document.getElementById("mp-cod").value.trim(),
-    nume: document.getElementById("mp-nume").value.trim(),
-    categorie: document.getElementById("mp-cat").value,
-    pret: parseFloat(document.getElementById("mp-pret").value)||0,
-    tva: parseFloat(document.getElementById("mp-tva").value)||21,
-    discMax: parseFloat(document.getElementById("mp-disc-max").value)||0,
-    status: document.getElementById("mp-status").value,
-    um: document.getElementById("mp-um").value,
-    descriere: document.getElementById("mp-desc").value,
-    pozaUrl: document.getElementById("mp-poza")?.value.trim() || "",
-    updatedAt: new Date().toISOString(),
+    cod:      document.getElementById("mp-cod").value.trim(),
+    nume:     document.getElementById("mp-nume").value.trim(),
+    categorie:document.getElementById("mp-cat").value,
+    pret:     parseFloat(document.getElementById("mp-pret").value)||0,
+    tva:      parseFloat(document.getElementById("mp-tva").value)||21,
+    discMax:  parseFloat(document.getElementById("mp-disc-max").value)||0,
+    status:   document.getElementById("mp-status").value,
+    um:       document.getElementById("mp-um").value,
+    descriere:descriereVal,
+    pozaUrl:  pozaData,
+    updatedAt:new Date().toISOString(),
   };
   if(!data.cod||!data.nume) return toast("Cod și denumire sunt obligatorii.");
   try {
@@ -1528,17 +1559,53 @@ async function saveProduct() {
   } catch(e) { toast("Eroare: "+e.message); }
 }
 
+function newProduct() {
+  resetProductModal();
+  openModal("m-product");
+}
+
+function resetProductModal() {
+  document.getElementById("mp-id").value = "";
+  document.getElementById("m-product-title").textContent = "Produs nou";
+  document.getElementById("mp-cod").value = "";
+  document.getElementById("mp-nume").value = "";
+  document.getElementById("mp-pret").value = "";
+  document.getElementById("mp-tva").value = "21";
+  document.getElementById("mp-disc-max").value = "0";
+  document.getElementById("mp-status").value = "activ";
+  document.getElementById("mp-um").value = "buc";
+  document.getElementById("mp-desc").value = "";
+  document.getElementById("mp-cat").value = "Echipamente";
+  document.getElementById("mp-poza-data").value = "";
+  document.getElementById("mp-poza-file").value = "";
+  document.getElementById("mp-poza-fname").textContent = "Niciun fișier selectat";
+  document.getElementById("mp-poza-preview").style.display = "none";
+  document.getElementById("mp-poza-clear").style.display = "none";
+}
+
 function editProduct(id) {
   const p = allProducts.find(x=>x.id===id); if(!p)return;
+  resetProductModal(); // reset first to avoid stale data
   document.getElementById("mp-id").value = id;
   document.getElementById("m-product-title").textContent = "Editare produs";
-  ["cod","nume","pret","tva","desc"].forEach(f => { const el=document.getElementById("mp-"+f); if(el)el.value=p[f]||""; });
-  const pozaEl = document.getElementById("mp-poza");
-  if(pozaEl) { pozaEl.value = p.pozaUrl||""; if(p.pozaUrl){document.getElementById("mp-poza-img").src=p.pozaUrl;document.getElementById("mp-poza-preview").style.display="block";} }
-  document.getElementById("mp-cat").value = p.categorie||"Echipamente";
-  document.getElementById("mp-disc-max").value = p.discMax||0;
+  document.getElementById("mp-cod").value = p.cod||"";
+  document.getElementById("mp-nume").value = p.nume||"";
+  document.getElementById("mp-pret").value = p.pret||"";
+  document.getElementById("mp-tva").value = p.tva||21;
+  document.getElementById("mp-disc-max").value = (p.discMax!==undefined) ? p.discMax : 0;
   document.getElementById("mp-status").value = p.status||"activ";
   document.getElementById("mp-um").value = p.um||"buc";
+  document.getElementById("mp-cat").value = p.categorie||"Echipamente";
+  // descriere — câmpul corect
+  document.getElementById("mp-desc").value = p.descriere||"";
+  // poza — base64 sau URL
+  if(p.pozaUrl) {
+    document.getElementById("mp-poza-data").value = p.pozaUrl;
+    document.getElementById("mp-poza-img").src = p.pozaUrl;
+    document.getElementById("mp-poza-preview").style.display = "block";
+    document.getElementById("mp-poza-fname").textContent = "Poză existentă";
+    document.getElementById("mp-poza-clear").style.display = "inline-flex";
+  }
   openModal("m-product");
 }
 
