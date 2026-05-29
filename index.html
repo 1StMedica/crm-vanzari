@@ -1142,12 +1142,31 @@ async function initApp() {
   document.getElementById("sf-name").textContent = currentUserData?.name || currentUser.email;
   document.getElementById("sf-role").textContent = (currentUserData?.role || "agent").charAt(0).toUpperCase() + (currentUserData?.role||"agent").slice(1);
 
-  // Mark user as activ on login
+  // Mark user as activ on login + resolve pending records
   try {
     const userRef = db.collection("users").doc(currentUser.uid);
     const userDoc = await userRef.get();
-    if(userDoc.exists && userDoc.data().status === "invitat") {
-      await userRef.update({status: "activ", firstLoginAt: new Date().toISOString()});
+    if(userDoc.exists) {
+      if(userDoc.data().status === "invitat") {
+        await userRef.update({status: "activ", firstLoginAt: new Date().toISOString()});
+      }
+    } else {
+      // Check for pending record by email
+      const email = currentUser.email;
+      const pendingId = "pending_" + email.replace(/[@.]/g, "_");
+      const pendingDoc = await db.collection("users").doc(pendingId).get();
+      if(pendingDoc.exists) {
+        const pdata = pendingDoc.data();
+        // Create proper record with real UID
+        await db.collection("users").doc(currentUser.uid).set({
+          ...pdata,
+          status: "activ",
+          firstLoginAt: new Date().toISOString(),
+          resolvedFromPending: true,
+        });
+        // Delete pending record
+        await db.collection("users").doc(pendingId).delete();
+      }
     }
   } catch(e) {}
 
@@ -1296,10 +1315,51 @@ async function inviteUser() {
 
   } catch(e) {
     btn.disabled = false; btn.textContent = "📧 Trimite invitație";
+
+    if(e.code === "auth/email-already-in-use") {
+      // User exists in Firebase (e.g. from CRM Restanțieri)
+      // Find their UID by trying to fetch sign-in methods, then add to Firestore
+      try {
+        // We can't get UID directly without logging in, but we can
+        // create the Firestore record and send reset email
+        // Use a workaround: send password reset email so they can access this app too
+        await firebase.auth().sendPasswordResetEmail(email);
+
+        // Create Firestore record with a placeholder — will be updated on first login
+        // Store as "pending_uid" — will be resolved when they log in
+        const pendingId = "pending_" + email.replace(/[@.]/g, "_");
+        await db.collection("users").doc(pendingId).set({
+          name, email, role,
+          telefon: tel,
+          status: "invitat",
+          existingUser: true,
+          invitedBy: currentUserData?.name || currentUser.email,
+          invitedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          note: "Utilizator existent în Firebase — UID actualizat la prima autentificare în VendorCRM"
+        });
+
+        document.getElementById("mu-step1").style.display = "none";
+        document.getElementById("mu-step2").style.display = "block";
+        document.getElementById("mu-sent-email").textContent = email;
+        document.getElementById("mu-sent-email").parentElement.insertAdjacentHTML("afterend",
+          "<div style=\"font-size:12px;color:var(--wrn);margin-top:6px\">ℹ Utilizatorul există deja în sistem (CRM Restanțieri). A primit email de acces pentru VendorCRM.</div>"
+        );
+
+        await loadUsers(); renderUsersTable();
+        await writeAudit("Invitație trimisă (user existent): " + name + " — " + email);
+        toast("Email de acces trimis lui " + name);
+        return;
+      } catch(e2) {
+        errEl.textContent = "Eroare la trimitere email: " + e2.message;
+        errEl.style.display = "block";
+        return;
+      }
+    }
+
     let msg = e.message;
-    if(e.code === "auth/email-already-in-use") msg = "Acest email există deja în sistem.";
     if(e.code === "auth/invalid-email") msg = "Email invalid.";
-    if(e.code === "auth/weak-password") msg = "Parola temporară generată prea slabă — reîncearcă.";
+    if(e.code === "auth/weak-password") msg = "Eroare internă — reîncearcă.";
     if(e.code === "auth/operation-not-allowed") msg = "Email/parolă nu este activat în Firebase Authentication.";
     errEl.textContent = "Eroare: " + msg;
     errEl.style.display = "block";
@@ -2728,3 +2788,5 @@ document.addEventListener("touchend", e => {
 </script>
 </body>
 </html>
+
+   
