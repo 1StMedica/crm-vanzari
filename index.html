@@ -521,7 +521,7 @@ tr:hover td{background:#FAFAF8}
   <div id="p-pipeline" class="pg">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
       <select class="fi" style="width:120px" id="f-pipe-agent"><option value="">Toți agenții</option></select>
-      <span style="margin-left:auto;font-size:13px;color:var(--mut)">Total pipeline: <b id="pipe-total" style="color:var(--txt)">—</b></span>
+      <span style="margin-left:auto;font-size:13px;color:var(--mut)">Total pipeline (cu TVA): <b id="pipe-total" style="color:var(--txt)">—</b></span>
       <button class="btn bp" onclick="openModal('m-opp')">+ Oportunitate</button>
     </div>
     <div class="kb" id="kanban-board">
@@ -538,7 +538,7 @@ tr:hover td{background:#FAFAF8}
     </div>
     <div class="tw2">
       <table>
-        <thead><tr><th>Nr. ofertă</th><th>Client</th><th class="hide-mobile">Versiune</th><th>Valoare</th><th class="hide-mobile">Data</th><th class="hide-mobile">Valabilitate</th><th>Status</th><th class="hide-mobile">Agent</th><th>Acțiuni</th></tr></thead>
+        <thead><tr><th>Nr. ofertă</th><th>Client</th><th class="hide-mobile">Versiune</th><th>Valoare (cu TVA)</th><th class="hide-mobile">Data</th><th class="hide-mobile">Valabilitate</th><th>Status</th><th class="hide-mobile">Agent</th><th>Acțiuni</th></tr></thead>
         <tbody id="offers-tbody"><tr><td colspan="9"><div class="loading"><div class="spin"></div></div></td></tr></tbody>
       </table>
     </div>
@@ -582,7 +582,7 @@ tr:hover td{background:#FAFAF8}
           </div>
           <div class="tw2" style="margin-bottom:0">
             <table>
-              <thead><tr><th>Cod</th><th>Denumire</th><th>Cant.</th><th>Preț (LEI)</th><th>Disc%</th><th>TVA%</th><th>Total</th><th></th></tr></thead>
+              <thead><tr><th>Cod</th><th>Denumire</th><th>Cant.</th><th>Preț cu TVA (LEI)</th><th>Disc%</th><th>TVA%</th><th>Total</th><th></th></tr></thead>
               <tbody id="ob-rows"></tbody>
             </table>
           </div>
@@ -606,10 +606,10 @@ tr:hover td{background:#FAFAF8}
         <div class="card" style="position:sticky;top:0">
           <div class="ct" style="margin-bottom:10px">Sumar ofertă</div>
           <div class="os">
-            <div class="osr"><span>Subtotal</span><span id="ob-st">0 LEI</span></div>
-            <div class="osr"><span>Discount</span><span style="color:var(--suc)" id="ob-dv">-0 LEI</span></div>
-            <div class="osr"><span>TVA (21%)</span><span id="ob-tv">+0 LEI</span></div>
-            <div class="osr tot"><span>TOTAL</span><span id="ob-gt" style="color:var(--acc)">0 LEI</span></div>
+            <div class="osr"><span>Subtotal (cu TVA)</span><span id="ob-st">0 LEI</span></div>
+            <div class="osr"><span>Discount aplicat</span><span style="color:var(--suc)" id="ob-dv">-0 LEI</span></div>
+            <div class="osr" style="font-size:11.5px;color:var(--mut)"><span>din care TVA (21%, inclus)</span><span id="ob-tv">0 LEI (inclus)</span></div>
+            <div class="osr tot"><span>TOTAL (TVA inclus)</span><span id="ob-gt" style="color:var(--acc)">0 LEI</span></div>
           </div>
           <div id="ob-disc-warn" style="margin-top:8px;padding:7px 9px;background:var(--sucl);border-radius:var(--r);border:1px solid #BBF7D0;font-size:11.5px;color:#15803D">Limită discount: 20% · Curent: 0% ✓</div>
           <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
@@ -932,7 +932,7 @@ tr:hover td{background:#FAFAF8}
     <div class="fr"><label class="fl">Categorie</label>
       <select class="fi" id="mp-cat"><option>Echipamente</option><option>Servicii</option><option>Accesorii</option></select>
     </div>
-    <div class="fr"><label class="fl">Preț (LEI) *</label><input class="fi" id="mp-pret" type="number" placeholder="0"></div>
+    <div class="fr"><label class="fl">Preț de vânzare (LEI, cu TVA inclus) *</label><input class="fi" id="mp-pret" type="number" placeholder="0"></div>
     <div class="fr"><label class="fl">TVA (%)</label><input class="fi" id="mp-tva" type="number" value="21"></div>
     <div class="fr"><label class="fl">Discount maxim (%)</label><input class="fi" id="mp-disc-max" type="number" value="0"></div>
     <div class="fr"><label class="fl">Status</label>
@@ -954,7 +954,7 @@ tr:hover td{background:#FAFAF8}
   <div class="mh"><div class="mt">Adaugă din catalog</div><div class="mx" onclick="closeModal('m-prodpick')">✕</div></div>
   <div class="fr"><input class="fi" placeholder="🔍 Caută cod sau denumire..." oninput="filterProdPick(this.value)" id="prodpick-search"></div>
   <div class="tw2"><table>
-    <thead><tr><th>Cod</th><th>Denumire</th><th>Categorie</th><th>Preț (LEI)</th><th>TVA%</th><th>Disc.max%</th><th></th></tr></thead>
+    <thead><tr><th>Cod</th><th>Denumire</th><th>Categorie</th><th>Preț cu TVA (LEI)</th><th>TVA%</th><th>Disc.max%</th><th></th></tr></thead>
     <tbody id="prodpick-tbody"></tbody>
   </table></div>
 </div></div>
@@ -2087,23 +2087,39 @@ function updateProdVisibility() {
 }
 
 function calcOffer(){
-  let sub=0,disc=0,tva=0;
+  // Preturile sunt CU TVA inclus
+  // Total rand = cantitate * pret_cu_tva * (1 - discount%)
+  // TVA e informativ — extras din total
+  let sub=0, disc=0;
   for(let i=0;i<offerRowCount;i++){
-    const row=document.getElementById(`ob-row-${i}`); if(!row)continue;
-    const q=parseFloat(document.getElementById(`ob-q-${i}`)?.value)||0;
-    const p=parseFloat(document.getElementById(`ob-p-${i}`)?.value)||0;
-    const d=(parseFloat(document.getElementById(`ob-d-${i}`)?.value)||0)/100;
-    const t=(parseFloat(document.getElementById(`ob-t-${i}`)?.value)||0)/100;
-    const base=q*p, da=base*d, net=base-da, ta=net*t;
-    sub+=base;disc+=da;tva+=ta;
-    const tot=document.getElementById(`ob-tot-${i}`);
-    if(tot) tot.textContent=Math.round(net+ta).toLocaleString('ro-RO')+" LEI";
+    const row=document.getElementById("ob-row-"+i); if(!row)continue;
+    const q   = parseFloat(document.getElementById("ob-q-"+i)?.value)||0;
+    const p   = parseFloat(document.getElementById("ob-p-"+i)?.value)||0;
+    const d   = (parseFloat(document.getElementById("ob-d-"+i)?.value)||0)/100;
+    const base = q*p;
+    const da   = base*d;
+    const total= base-da;
+    sub+=base; disc+=da;
+    const tot=document.getElementById("ob-tot-"+i);
+    if(tot) tot.textContent=Math.round(total).toLocaleString('ro-RO')+" LEI";
   }
-  const net=sub-disc;
+  const totalFinal=sub-disc;
+  // TVA calculat corect: baza = total/1.tva, TVA = total - baza
+  // Ex: 1000 LEI cu TVA 21% => baza=826.45, TVA=173.55
+  let tvaTotal = 0;
+  for(let i=0;i<offerRowCount;i++){
+    const row=document.getElementById("ob-row-"+i); if(!row)continue;
+    const q = parseFloat(document.getElementById("ob-q-"+i)?.value)||0;
+    const p = parseFloat(document.getElementById("ob-p-"+i)?.value)||0;
+    const d = (parseFloat(document.getElementById("ob-d-"+i)?.value)||0)/100;
+    const tvaRate = 1 + (parseFloat(document.getElementById("ob-t-"+i)?.value)||21)/100;
+    const totalRand = q*p*(1-d);
+    tvaTotal += totalRand - totalRand/tvaRate;
+  }
   document.getElementById("ob-st").textContent=Math.round(sub).toLocaleString('ro-RO')+" LEI";
   document.getElementById("ob-dv").textContent="-"+Math.round(disc).toLocaleString('ro-RO')+" LEI";
-  document.getElementById("ob-tv").textContent="+"+Math.round(tva).toLocaleString('ro-RO')+" LEI";
-  document.getElementById("ob-gt").textContent=Math.round(net+tva).toLocaleString('ro-RO')+" LEI";
+  document.getElementById("ob-tv").textContent=tvaTotal.toLocaleString('ro-RO',{minimumFractionDigits:2,maximumFractionDigits:2})+" LEI (inclus)";
+  document.getElementById("ob-gt").textContent=Math.round(totalFinal).toLocaleString('ro-RO')+" LEI";
   const dp=sub>0?Math.round(disc/sub*100):0;
   const w=document.getElementById("ob-disc-warn");
   if(w){ if(dp>20){w.style.background="var(--dngl)";w.style.borderColor="#FECACA";w.style.color="#B91C1C";w.textContent=`Limită discount: 20% · Curent: ${dp}% ⚠ Necesită aprobare manager!`;}
@@ -2141,6 +2157,7 @@ function collectOfferRows(){
 }
 
 function parseTotal(){
+  // Total is already with TVA included
   const t=document.getElementById("ob-gt").textContent; return parseFloat(t.replace(/[^\d]/g,""))||0;
 }
 
@@ -2298,8 +2315,8 @@ function generateOfferWordFromId(id){
 function _buildOfferDocx(d){
   const {Document,Packer,Paragraph,Table,TableRow,TableCell,TextRun,HeadingLevel,AlignmentType,WidthType,VerticalAlign,ShadingType}=window.docx;
   const azi = new Date().toLocaleDateString('ro-RO');
-  const colHeaders = ["Nr.","Cod","Denumire produs / serviciu","U.M","Cant.","Preț LEI (TVA inclus)"];
-  const colW = [5,12,43,7,8,25];
+  const colHeaders = ["Nr.","Cod","Denumire produs / serviciu","U.M","Cant.","Preț unitar\n(TVA inclus)","Total\n(TVA inclus)"];
+  const colW = [4,10,38,6,7,18,17];
   const headerCells = colHeaders.map((t,i) =>
     new TableCell({
       children:[new Paragraph({children:[new TextRun({text:t,bold:true,size:18,color:"FFFFFF"})],alignment:AlignmentType.CENTER})],
@@ -2308,17 +2325,22 @@ function _buildOfferDocx(d){
     })
   );
   const bodyRows = d.rows.map((r,idx) => {
-    const base=r.cantitate*r.pret, da=base*(r.discount/100), net=base-da, ta=net*(r.tva/100);
-    const total = Math.round(net+ta).toLocaleString('ro-RO')+" LEI";
+    // Pretul e CU TVA — total = cantitate * pret * (1 - discount%)
+    const unitPret  = r.pret || 0;
+    const disc      = (r.discount||0)/100;
+    const totalRow  = Math.round(r.cantitate * unitPret * (1-disc));
     return new TableRow({children:[
-      String(idx+1), r.cod||"", r.denumire||"", r.um||"buc", String(r.cantitate), total
+      String(idx+1), r.cod||"", r.denumire||"", r.um||"buc",
+      String(r.cantitate),
+      unitPret.toLocaleString("ro-RO")+" LEI",
+      totalRow.toLocaleString("ro-RO")+" LEI"
     ].map((txt,ci) => new TableCell({
       children:[new Paragraph({children:[new TextRun({text:txt,size:18})],alignment:ci<=1||ci>=3?AlignmentType.CENTER:AlignmentType.LEFT})],
       width:{size:colW[ci],type:WidthType.PERCENTAGE}
     }))});
   });
   let totalGeneral = 0;
-  d.rows.forEach(r=>{ const base=r.cantitate*r.pret,da=base*(r.discount/100),net=base-da,ta=net*(r.tva/100); totalGeneral+=net+ta; });
+  d.rows.forEach(r=>{ totalGeneral += r.cantitate * (r.pret||0) * (1-(r.discount||0)/100); });
   const doc = new Document({sections:[{properties:{},children:[
     new Paragraph({children:[new TextRun({text:"SC 1St Medica SRL",bold:true,size:28,color:"1E4D8C"})],spacing:{after:60}}),
     new Paragraph({children:[new TextRun({text:"Nr. ORC: J40/3954/2020  ·  CIF: RO 28254874  ·  Calea Rahovei 266-268, corp 2, et.2, birou 12D, București",size:17,color:"555555"})],spacing:{after:200}}),
@@ -2326,7 +2348,8 @@ function _buildOfferDocx(d){
     new Paragraph({children:[new TextRun({text:"Nr. "+( d.nr||"—")+"   |   Data: "+azi,size:20,color:"555555"})],alignment:AlignmentType.CENTER,spacing:{after:280}}),
     new Paragraph({children:[new TextRun({text:"În atenția: ",bold:true,size:20}),new TextRun({text:(d.client||"—")+(d.contact?" — "+d.contact:""),size:20})],spacing:{after:250}}),
     new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[new TableRow({children:headerCells,tableHeader:true}),...bodyRows]}),
-    new Paragraph({children:[new TextRun({text:"PREȚ TOTAL: "+Math.round(totalGeneral).toLocaleString('ro-RO')+" LEI (TVA inclus)",bold:true,size:24,color:"1E4D8C"})],alignment:AlignmentType.RIGHT,spacing:{before:250,after:200}}),
+    new Paragraph({children:[new TextRun({text:"TOTAL DE PLATĂ: "+Math.round(totalGeneral).toLocaleString('ro-RO')+" LEI (TVA inclus)",bold:true,size:24,color:"1E4D8C"})],alignment:AlignmentType.RIGHT,spacing:{before:250,after:200}}),
+    new Paragraph({children:[new TextRun({text:"Din care TVA: "+d.rows.reduce((s,r)=>{const tot=r.cantitate*(r.pret||0)*(1-(r.discount||0)/100);const rate=1+(r.tva||21)/100;return s+(tot-tot/rate);},0).toLocaleString('ro-RO',{minimumFractionDigits:2,maximumFractionDigits:2})+" LEI",size:18,color:"555555"})],alignment:AlignmentType.RIGHT,spacing:{after:200}}),
     new Paragraph({children:[new TextRun({text:"Condiții comerciale:",bold:true,size:20})],spacing:{before:150,after:70}}),
     ...[
       "Modalitate plată: "+(d.plata||"30% avans, rest la livrare"),
@@ -2788,5 +2811,3 @@ document.addEventListener("touchend", e => {
 </script>
 </body>
 </html>
-
-   
