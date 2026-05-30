@@ -447,10 +447,43 @@ tr:hover td{background:#FAFAF8}
   <!-- ======================== DASHBOARD ======================== -->
   <div id="p-dashboard" class="pg active">
     <div class="kg" id="dash-kpis">
-      <div class="kc" style="border-left:3px solid var(--acc)"><div class="kl">Leaduri noi (luna)</div><div class="kv" id="d-leads">—</div><div class="ks">Se încarcă...</div></div>
-      <div class="kc" style="border-left:3px solid var(--wrn)"><div class="kl">Follow-up scadent azi</div><div class="kv" id="d-followup" style="color:var(--wrn)">—</div><div class="ks" id="d-followup-sub">—</div></div>
-      <div class="kc" style="border-left:3px solid var(--suc)"><div class="kl">Oferte trimise</div><div class="kv" id="d-offers">—</div><div class="ks up" id="d-offers-sub">—</div></div>
-      <div class="kc" style="border-left:3px solid var(--pur)"><div class="kl">Valoare pipeline (LEI)</div><div class="kv" id="d-pipeline">—</div><div class="ks up">Total oportunități active</div></div>
+      <div class="kc" style="border-left:3px solid var(--acc);cursor:pointer" onclick="dashDrill('leads-luna')" title="Click pentru lista leaduri">
+        <div class="kl">Leaduri noi (luna)</div><div class="kv" id="d-leads">—</div>
+        <div class="ks up" id="d-leads-sub">—</div>
+        <div style="font-size:10.5px;color:var(--acc);margin-top:4px">↗ click pentru detalii</div>
+      </div>
+      <div class="kc" style="border-left:3px solid var(--wrn);cursor:pointer" onclick="dashDrill('followup-azi')" title="Click pentru lista follow-up">
+        <div class="kl">Follow-up scadent azi</div><div class="kv" id="d-followup" style="color:var(--wrn)">—</div>
+        <div class="ks" id="d-followup-sub">—</div>
+        <div style="font-size:10.5px;color:var(--wrn);margin-top:4px">↗ click pentru detalii</div>
+      </div>
+      <div class="kc" style="border-left:3px solid var(--suc);cursor:pointer" onclick="dashDrill('oferte-luna')" title="Click pentru lista oferte">
+        <div class="kl">Oferte trimise (luna)</div><div class="kv" id="d-offers">—</div>
+        <div class="ks up" id="d-offers-sub">—</div>
+        <div style="font-size:10.5px;color:var(--suc);margin-top:4px">↗ click pentru detalii</div>
+      </div>
+      <div class="kc" style="border-left:3px solid var(--pur);cursor:pointer" onclick="dashDrill('pipeline-activ')" title="Click pentru pipeline">
+        <div class="kl">Valoare pipeline (LEI)</div><div class="kv" id="d-pipeline">—</div>
+        <div class="ks up">Total oportunități active</div>
+        <div style="font-size:10.5px;color:var(--pur);margin-top:4px">↗ click pentru detalii</div>
+      </div>
+    </div>
+    <!-- Oferte Draft alert bar -->
+    <div id="dash-draft-bar" style="display:none;background:var(--dngl);border:1px solid #FECACA;border-radius:var(--r);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="dashDrill('oferte-draft')">
+      <span style="font-size:18px">🔴</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--dng)">Oferte în Draft — <span id="d-draft-count">0</span> neexpeditiate</div>
+        <div style="font-size:11.5px;color:#B91C1C" id="d-draft-val">—</div>
+      </div>
+      <span style="font-size:12px;color:var(--dng);font-weight:500">↗ click pentru lista completă</span>
+    </div>
+    <!-- Dashboard drill-down panel -->
+    <div id="dash-drill" class="card" style="display:none;margin-bottom:14px">
+      <div class="ch">
+        <div class="ct" id="dash-drill-title">Detalii</div>
+        <button class="abt" onclick="document.getElementById('dash-drill').style.display='none'">✕ Închide</button>
+      </div>
+      <div id="dash-drill-content"></div>
     </div>
     <div class="tw">
       <div>
@@ -598,6 +631,22 @@ tr:hover td{background:#FAFAF8}
               <select class="fi" id="ob-plata"><option>30% avans, rest la livrare</option><option>50% avans, rest la livrare</option><option>100% avans</option><option>30 zile net</option></select>
             </div>
             <div class="fr"><label class="fl">Garanție</label><input class="fi" id="ob-garantie" value="24 luni"></div>
+          </div>
+          <div style="background:var(--wrnl);border:1px solid #FDE68A;border-radius:var(--r);padding:10px 12px;margin-bottom:10px">
+            <div class="f2">
+              <div class="fr">
+                <label class="fl" style="color:var(--wrn);font-weight:600">⏰ Data urmărire ofertă *</label>
+                <input class="fi" id="ob-urmarire" type="date" style="border-color:var(--wrn)">
+                <div style="font-size:11px;color:#B45309;margin-top:3px">Obligatoriu — reminder automat adăugat în activități</div>
+              </div>
+              <div class="fr">
+                <label class="fl" style="color:var(--wrn);font-weight:600">Responsabil urmărire *</label>
+                <select class="fi" id="ob-urmarire-resp" style="border-color:var(--wrn)">
+                  <option value="">— Selectează agent —</option>
+                </select>
+                <div style="font-size:11px;color:#B45309;margin-top:3px">Agentul responsabil de urmărire</div>
+              </div>
+            </div>
           </div>
           <div class="fr"><label class="fl">Observații</label><textarea class="fi" id="ob-obs" rows="2" placeholder="Note, condiții speciale..."></textarea></div>
         </div>
@@ -1056,8 +1105,9 @@ tr:hover td{background:#FAFAF8}
 <div id="m-prodpick" class="mo" style="display:none"><div class="md" onclick="event.stopPropagation()">
   <div class="mh"><div class="mt">Adaugă din catalog</div><div class="mx" onclick="closeModal('m-prodpick')">✕</div></div>
   <div class="fr"><input class="fi" placeholder="🔍 Caută cod sau denumire..." oninput="filterProdPick(this.value)" id="prodpick-search"></div>
+  <div style="font-size:12px;color:var(--mut);margin-bottom:8px">💡 Click pe orice produs din listă pentru a-l adăuga în ofertă.</div>
   <div class="tw2"><table>
-    <thead><tr><th>Cod</th><th>Denumire</th><th>Categorie</th><th>Preț cu TVA (LEI)</th><th>TVA%</th><th>Disc.max%</th><th></th></tr></thead>
+    <thead><tr><th>Cod</th><th>Denumire</th><th>Categorie</th><th>Preț cu TVA (LEI)</th><th>TVA%</th><th>Disc.max%</th></tr></thead>
     <tbody id="prodpick-tbody"></tbody>
   </table></div>
 </div></div>
@@ -1348,7 +1398,25 @@ function gp(id, el) {
   if(id==="reports")      renderReports();
   if(id==="pipeline")     renderKanban();
   if(id==="admin")        renderAdmin();
-  if(id==="offerbuilder") { populateOfferLeadSelect(); if(!document.getElementById("ob-rows").children.length) addProductRow(); }
+  if(id==="offerbuilder") { 
+    populateOfferLeadSelect();
+    if(!document.getElementById("ob-rows").children.length) addProductRow();
+    // Populate urmarire responsabil
+    const urResp = document.getElementById("ob-urmarire-resp");
+    if(urResp && urResp.options.length <= 1) {
+      allUsers.forEach(u => {
+        const o = document.createElement("option");
+        o.value = u.id; o.textContent = u.name||u.email;
+        urResp.appendChild(o);
+      });
+    }
+    // Set default urmarire date to 7 days from now
+    const urDate = document.getElementById("ob-urmarire");
+    if(urDate && !urDate.value) {
+      const d = new Date(); d.setDate(d.getDate()+7);
+      urDate.value = d.toISOString().split("T")[0];
+    }
+  }
 }
 
 // ============================================================
@@ -2306,14 +2374,18 @@ function renderOffersTable() {
   let offers = allOffers.filter(o=>(!st||o.status===st)&&(!ag||(o.agentId===ag)));
   const tbody=document.getElementById("offers-tbody");if(!tbody)return;
   if(!offers.length){tbody.innerHTML='<tr><td colspan="9"><div class="empty">Nicio ofertă</div></td></tr>';return;}
-  const stTag={Draft:"t-gray",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn","Pending aprobare":"t-warn"};
+  const stTag={Draft:"t-red",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn","Pending aprobare":"t-warn"};
   const azi=new Date();
   const canEdit = o => !["Acceptată"].includes(o.status);
   tbody.innerHTML=offers.map(o=>{
     const val=o.valabilitatePana?new Date(o.valabilitatePana):null;
     const valStr=val?(val<azi?`<span style="color:var(--dng)">${val.toLocaleDateString('ro-RO')}</span>`:val.toLocaleDateString('ro-RO')):"—";
-    return `<tr style="cursor:pointer" onclick="viewOffer('${o.id}')">
-      <td onclick="event.stopPropagation()"><b style="color:var(--acc);cursor:pointer" onclick="viewOffer('${o.id}')">${o.nr||""}</b></td>
+    const isDraft = o.status==="Draft";
+    return `<tr style="cursor:pointer;${isDraft?'background:#FEF2F2;border-left:3px solid var(--dng);':''}" onclick="viewOffer('${o.id}')">
+      <td onclick="event.stopPropagation()">
+        <b style="color:${isDraft?'var(--dng)':'var(--acc)'};cursor:pointer" onclick="viewOffer('${o.id}')">${o.nr||""}</b>
+        ${isDraft?'<div style="font-size:10px;color:var(--dng);font-weight:600">DRAFT — NETRIMIS</div>':""}
+      </td>
       <td>${o.client||""}</td>
       <td onclick="event.stopPropagation()"><button class="abt" onclick="showVersions('${o.id}')" style="font-size:11px">v${o.versiune||1} ▾</button></td>
       <td><b>${(o.total||0).toLocaleString('ro-RO',{maximumFractionDigits:0})} LEI</b></td>
@@ -2468,6 +2540,14 @@ async function saveOffer(){
   if(!rows.length) return toast("Adaugă cel puțin un produs.");
   const client=document.getElementById("ob-client").value.trim();
   if(!client) return toast("Clientul este obligatoriu.");
+  // Validate urmarire
+  const urmarire    = document.getElementById("ob-urmarire")?.value;
+  const urmarireResp= document.getElementById("ob-urmarire-resp")?.value;
+  const urmarireRespName = document.getElementById("ob-urmarire-resp")?.selectedOptions[0]?.text||"";
+  if(!urmarire) {
+    document.getElementById("ob-urmarire")?.focus();
+    return toast("⚠ Data urmăririi ofertei este obligatorie.");
+  }
   const nr=await getNextOfferNr();
   const valSel=document.getElementById("ob-val").value;
   const valZile=parseInt(valSel)||30;
@@ -2488,6 +2568,9 @@ async function saveOffer(){
     livrare:    document.getElementById("ob-livrare").value,
     garantie:   document.getElementById("ob-garantie").value,
     observatii: document.getElementById("ob-obs").value,
+    urmarire:   urmarire||"",
+    urmarireResp: urmarireResp||"",
+    urmarireRespName: urmarireRespName||"",
     status:     document.getElementById("ob-status").value,
     versiune:   1,
     agentId:    currentUser.uid,
@@ -2496,10 +2579,58 @@ async function saveOffer(){
   };
   try{
     await db.collection("oferte").add(data);
-    toast("Ofertă salvată: "+nr);
-    await loadOffers(); await writeAudit(`Ofertă creată: ${nr} - ${client} - ${data.total} LEI`);
+    await loadOffers();
+    await writeAudit(`Ofertă creată: ${nr} - ${client} - ${data.total} LEI`);
     document.getElementById("ob-nr").textContent=nr;
     currentOfferId=null;
+
+    // 1. Activitate reminder urmărire
+    const urEl=document.getElementById("ob-urmarire");
+    const urRespEl=document.getElementById("ob-urmarire-resp");
+    const urVal=urEl?.value||"";
+    const urRespId=urRespEl?.value||currentUser.uid;
+    const urRespName=urRespEl?.selectedOptions[0]?.text||currentUserData?.name||"";
+    if(urVal) {
+      try {
+        await db.collection("activitati").add({
+          tip:"Ofertare", dataOra:new Date().toISOString(),
+          leadNume:client, agentId:currentUser.uid,
+          agent:currentUserData?.name||currentUser.email,
+          text:`Ofertă ${data.status}: ${nr} — ${data.total.toLocaleString("ro-RO",{maximumFractionDigits:0})} LEI`,
+          nextStep:`Urmărire ofertă ${nr}`,
+          followup:urVal,
+          responsabilId:urRespId, responsabil:urRespName,
+          createdAt:new Date().toISOString(),
+        });
+      } catch(e2){ console.warn("Activity error:",e2); }
+    }
+
+    // 2. Dacă Trimisă → adaugă în Pipeline
+    if(data.status==="Trimisă") {
+      try {
+        const existingOpp=allOpps.find(o=>o.client===client&&!["Câștigat","Pierdut"].includes(o.etapa));
+        if(existingOpp) {
+          await db.collection("oportunitati").doc(existingOpp.id).update({
+            etapa:"Ofertare", valoare:data.total, updatedAt:new Date().toISOString()
+          });
+        } else {
+          await db.collection("oportunitati").add({
+            client, contact:data.contact||"", valoare:data.total,
+            probabilitate:55, etapa:"Ofertare",
+            responsabilId:currentUser.uid, responsabil:currentUserData?.name||"",
+            createdAt:new Date().toISOString(), sursa:`Ofertă ${nr}`,
+          });
+        }
+        await loadOpps();
+        toast(`✓ Ofertă salvată (${nr}) + adăugată în Pipeline + reminder ${urVal?new Date(urVal).toLocaleDateString("ro-RO"):""}`);
+      } catch(e2){ 
+        toast(`✓ Ofertă salvată: ${nr}`);
+        console.warn("Pipeline error:",e2); 
+      }
+    } else {
+      toast(`✓ Ofertă salvată: ${nr}${urVal?" · Urmărire: "+new Date(urVal).toLocaleDateString("ro-RO"):""}`);
+    }
+
   }catch(e){ toast("Eroare: "+e.message); }
 }
 
@@ -2550,6 +2681,11 @@ function loadOfferIntoBuilder(o, isDuplicate) {
   document.getElementById("ob-obs").value      = o.observatii||"";
   document.getElementById("ob-status").value   = isDuplicate?"Draft":(o.status||"Draft");
   document.getElementById("ob-nr").textContent = isDuplicate?"Ofertă duplicată (nr. nou la salvare)":`Editare ${o.nr||""}`;
+  // Restore urmarire
+  const urEl=document.getElementById("ob-urmarire");
+  if(urEl) urEl.value = isDuplicate ? "" : (o.urmarire||"");
+  const urRespEl=document.getElementById("ob-urmarire-resp");
+  if(urRespEl && !isDuplicate && o.urmarireResp) urRespEl.value=o.urmarireResp;
   // Add products
   (o.produse||[]).forEach(r => addProductRow({
     cod: r.cod, nume: r.denumire, pret: r.pret,
@@ -2592,17 +2728,19 @@ function filterProdPick(q){
   if(!prods.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--mut)">Niciun produs găsit</td></tr>';return;}
   tb.innerHTML=prods.map(p=>{
     const pid=p.id;
-    return `<tr>
+    return `<tr style="cursor:pointer;transition:.1s" 
+      onclick="addFromCatalog('${pid}')"
+      onmouseenter="this.style.background='var(--accl)'"
+      onmouseleave="this.style.background=''">
       <td style="font-size:12px">${p.cod||""}</td>
       <td>
-        <div style="font-weight:500">${p.nume||""}</div>
-        ${p.descriere?`<div style="font-size:11px;color:var(--mut);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.descriere.substring(0,80)}${p.descriere.length>80?"...":""}</div>`:""}
+        <div style="font-weight:500;color:var(--acc)">${p.nume||""}</div>
+        ${p.descriere?`<div style="font-size:11px;color:var(--mut);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.descriere.substring(0,80)}${p.descriere.length>80?"...":""}</div>`:""}
       </td>
       <td><span class="tag ${catColors[p.categorie]||"t-gray"}">${p.categorie||""}</span></td>
       <td style="font-weight:500">${(p.pret||0).toLocaleString("ro-RO")} LEI</td>
       <td>${p.tva||21}%</td>
       <td>${p.discMax!==undefined?p.discMax:0}%</td>
-      <td><button class="btn bp bs" onclick="addFromCatalog('${pid}')">+ Adaugă</button></td>
     </tr>`;
   }).join("");
 }
@@ -2940,27 +3078,184 @@ function addFromViewToOffer() {
 // ============================================================
 // DASHBOARD
 // ============================================================
+
+// ============================================================
+// DASHBOARD DRILL-DOWN
+// ============================================================
+let _dashData = {};
+
+function dashDrill(type) {
+  const panel = document.getElementById("dash-drill");
+  const title  = document.getElementById("dash-drill-title");
+  const cont   = document.getElementById("dash-drill-content");
+  panel.style.display = "block";
+  panel.scrollIntoView({behavior:"smooth", block:"start"});
+
+  const stTag={Draft:"t-gray",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn","Pending aprobare":"t-warn"};
+  const tipIcon={Apel:"📞",Email:"📧",WhatsApp:"📱",Vizită:"🤝",Demo:"💻",Ofertare:"📋","Suport tehnic":"🔧","Notă internă":"📝"};
+
+  if(type === "leads-luna") {
+    const list = _dashData.leadsLuna || _dashData['leads-luna'] || [];
+    title.textContent = "Leaduri noi luna aceasta (" + list.length + ")";
+    cont.innerHTML = list.length ? `<div class="tw2"><table>
+      <thead><tr><th>Scor</th><th>Nume</th><th>Companie</th><th>Sursă</th><th>Status</th><th>Responsabil</th><th>Creat</th></tr></thead>
+      <tbody>${list.map(l=>`<tr style="cursor:pointer" onclick="openLeadDetail('${l.id}')">
+        <td>${scorRing(l.scor||0)}</td>
+        <td><b style="color:var(--acc)">${l.nume||""}</b></td>
+        <td>${l.companie||""}</td>
+        <td><span class="tag t-blue">${l.sursa||""}</span></td>
+        <td><span class="tag t-gray">${l.status||"Nou"}</span></td>
+        <td>${allUsers.find(u=>u.id===l.responsabilId)?.name||"—"}</td>
+        <td style="font-size:12px;color:var(--mut)">${l.createdAt?new Date(l.createdAt).toLocaleDateString("ro-RO"):""}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>` : '<div class="empty">Niciun lead nou luna aceasta</div>';
+  }
+
+  else if(type === "followup-azi") {
+    const list = _dashData.followupAzi || _dashData['followup-azi'] || [];
+    title.textContent = "Follow-up-uri scadente (" + list.length + ")";
+    cont.innerHTML = list.length ? `<div class="tw2"><table>
+      <thead><tr><th>Scor</th><th>Nume</th><th>Companie</th><th>Data follow-up</th><th>Responsabil</th><th>Status</th></tr></thead>
+      <tbody>${list.map(l=>{
+        const fu=new Date(l.followup);
+        const azi=new Date(); azi.setHours(0,0,0,0);
+        const depasit=fu<azi;
+        return `<tr style="cursor:pointer" onclick="openLeadDetail('${l.id}')">
+          <td>${scorRing(l.scor||0)}</td>
+          <td><b style="color:var(--acc)">${l.nume||""}</b></td>
+          <td>${l.companie||""}</td>
+          <td><span style="color:${depasit?'var(--dng)':'var(--wrn)';font-weight:500}">${fu.toLocaleDateString("ro-RO")}</span></td>
+          <td>${allUsers.find(u=>u.id===l.responsabilId)?.name||"—"}</td>
+          <td><span class="tag t-gray">${l.status||"Nou"}</span></td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table></div>` : '<div class="empty">Niciun follow-up scadent</div>';
+  }
+
+  else if(type === "oferte-luna") {
+    const list = _dashData.oferteluna || [];
+    const total = list.reduce((s,o)=>s+(o.total||0),0);
+    title.textContent = "Oferte luna aceasta (" + list.length + ") · " + total.toLocaleString("ro-RO",{maximumFractionDigits:0}) + " LEI";
+    cont.innerHTML = list.length ? `<div class="tw2"><table>
+      <thead><tr><th>Nr.</th><th>Client</th><th>Agent</th><th>Valoare (LEI)</th><th>Status</th><th>Data</th></tr></thead>
+      <tbody>${list.map(o=>`<tr style="cursor:pointer" onclick="viewOffer('${o.id}')">
+        <td><b style="color:var(--acc)">${o.nr||"—"}</b></td>
+        <td>${o.client||""}</td>
+        <td>${o.agent||""}</td>
+        <td style="font-weight:500">${(o.total||0).toLocaleString("ro-RO",{maximumFractionDigits:0})} LEI</td>
+        <td><span class="tag ${stTag[o.status]||"t-gray"}">${o.status||"Draft"}</span></td>
+        <td style="font-size:12px;color:var(--mut)">${o.createdAt?new Date(o.createdAt).toLocaleDateString("ro-RO"):""}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>` : '<div class="empty">Nicio ofertă luna aceasta</div>';
+  }
+
+  else if(type === "oferte-draft") {
+    const list = _dashData.draftOffers || allOffers.filter(o=>o.status==="Draft");
+    const total = list.reduce((s,o)=>s+(o.total||0),0);
+    title.textContent = "Oferte Draft — neexpeditiate (" + list.length + ") · " + total.toLocaleString("ro-RO",{maximumFractionDigits:0}) + " LEI";
+    cont.innerHTML = list.length ? `
+      <div style="background:var(--dngl);border:1px solid #FECACA;border-radius:var(--r);padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:#B91C1C">
+        ⚠ Aceste oferte au fost create dar nu au fost trimise clienților. Trimite-le sau șterge-le pentru a menține lista curată.
+      </div>
+      <div class="tw2"><table>
+        <thead><tr><th>Nr.</th><th>Client</th><th>Agent</th><th>Valoare (LEI)</th><th>Creat</th><th>Acțiuni</th></tr></thead>
+        <tbody>${list.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(o=>`
+          <tr style="cursor:pointer;background:#FEF2F2" onclick="viewOffer('${o.id}')">
+            <td><b style="color:var(--dng)">${o.nr||"—"}</b><div style="font-size:10px;color:var(--dng);font-weight:600">DRAFT</div></td>
+            <td>${o.client||""}</td>
+            <td>${o.agent||""}</td>
+            <td style="font-weight:500">${(o.total||0).toLocaleString("ro-RO",{maximumFractionDigits:0})} LEI</td>
+            <td style="font-size:12px;color:var(--mut)">${o.createdAt?new Date(o.createdAt).toLocaleDateString("ro-RO"):""}</td>
+            <td onclick="event.stopPropagation()" style="white-space:nowrap">
+              <button class="abt" onclick="editOfferInBuilder('${o.id}')">✏ Editează</button>
+              <button class="abt" style="color:var(--suc);border-color:var(--suc)" onclick="editOfferInBuilder('${o.id}')">📤 Trimite</button>
+              <button class="abt" style="color:var(--dng);border-color:var(--dng)" onclick="deleteOffer('${o.id}','${o.nr||""}');loadDashboard()">🗑</button>
+            </td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>` : '<div class="empty">Nicio ofertă în Draft 🎉</div>';
+  }
+
+  else if(type === "pipeline-activ") {
+    const list = _dashData.pipelineActiv || _dashData['pipeline-activ'] || [];
+    const total = list.reduce((s,o)=>s+(o.valoare||0),0);
+    title.textContent = "Pipeline activ (" + list.length + " oportunități) · " + total.toLocaleString("ro-RO",{maximumFractionDigits:0}) + " LEI";
+    cont.innerHTML = list.length ? `<div class="tw2"><table>
+      <thead><tr><th>Client</th><th>Etapă</th><th>Valoare (LEI)</th><th>Probabilitate</th><th>Responsabil</th><th>Industrie</th></tr></thead>
+      <tbody>${list.sort((a,b)=>(b.valoare||0)-(a.valoare||0)).map(o=>`<tr style="cursor:pointer" onclick="editOpp('${o.id}')">
+        <td><b>${o.client||""}</b>${o.contact?`<br><span style="font-size:11px;color:var(--mut)">${o.contact}</span>`:""}</td>
+        <td><span class="tag t-blue">${o.etapa||"Identificare"}</span></td>
+        <td style="font-weight:500">${(o.valoare||0).toLocaleString("ro-RO",{maximumFractionDigits:0})} LEI</td>
+        <td>${o.probabilitate||0}%</td>
+        <td>${allUsers.find(u=>u.id===o.responsabilId)?.name||o.responsabil||"—"}</td>
+        <td style="font-size:12px;color:var(--mut)">${o.industrie||"—"}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>` : '<div class="empty">Nicio oportunitate activă în pipeline</div>';
+  }
+
+  else if(type === "activitati-recente") {
+    const list = allActivities.slice(0,20);
+    title.textContent = "Activitate recentă (" + list.length + ")";
+    cont.innerHTML = `<div class="tl">${list.map(a=>`
+      <div class="tli" style="cursor:${a.leadId?'pointer':'default'}" onclick="${a.leadId?`openLeadDetail('${a.leadId}')`:''}">
+        <div class="tld bl"></div>
+        <div class="tlb">
+          <div class="tlt">${tipIcon[a.tip]||"📝"} ${a.tip} — <span style="${a.leadId?'color:var(--acc)':''}">
+            ${a.leadNume||"—"}</span></div>
+          <div class="tlm">${a.agent||""} · ${a.dataOra?new Date(a.dataOra).toLocaleDateString("ro-RO"):""}${a.durata?" · "+a.durata+" min":""}</div>
+          ${a.text?`<div class="tln">${a.text.slice(0,120)}${a.text.length>120?"...":""}</div>`:""}
+        </div>
+      </div>`).join("")}
+      <div style="text-align:center;margin-top:8px">
+        <button class="btn bg bs" onclick="gp('activities',null)">Toate activitățile ↗</button>
+      </div>
+    </div>`;
+  }
+}
+
 async function loadDashboard(){
   const azi=new Date(); azi.setHours(0,0,0,0);
   const luna=new Date(); luna.setDate(1); luna.setHours(0,0,0,0);
 
-  // KPI leaduri luna
-  const leadsLuna=allLeads.filter(l=>l.createdAt&&new Date(l.createdAt)>=luna).length;
-  document.getElementById("d-leads").textContent=leadsLuna;
+  // KPI leaduri luna — store for drillDown
+  const _leadsLuna = allLeads.filter(l=>l.createdAt&&new Date(l.createdAt)>=luna);
+  const _followupAzi = allLeads.filter(l=>l.followup&&new Date(l.followup)<=azi).sort((a,b)=>new Date(a.followup)-new Date(b.followup));
+  const _ofertelunaArr = allOffers.filter(o=>o.createdAt&&new Date(o.createdAt)>=luna);
+  const _pipelineActiv = allOpps.filter(o=>!["Câștigat","Pierdut"].includes(o.etapa));
+  // Store globally for dashDrill
+  _dashData = { leadsLuna:_leadsLuna, followupAzi:_followupAzi, ofertelunaArr:_ofertelunaArr, pipelineActiv:_pipelineActiv };
+  _dashData.leadsLuna = _leadsLuna;
+  _dashData.followupAzi = _followupAzi;
+  _dashData.ofertelunaArr = _ofertelunaArr;
+  _dashData.pipelineActiv = _pipelineActiv;
+  // Also alias for dashDrill keys
+  _dashData["oferte-luna"] = _ofertelunaArr;
+  _dashData["oferte-luna-list"] = _ofertelunaArr;
 
-  // Follow-up scadent
-  const followScadent=allLeads.filter(l=>l.followup&&new Date(l.followup)<=azi).length;
-  document.getElementById("d-followup").textContent=followScadent;
-  document.getElementById("d-followup-sub").textContent=followScadent+" scadente azi";
+  document.getElementById("d-leads").textContent = _leadsLuna.length;
+  document.getElementById("d-leads-sub").textContent = "luna aceasta · click pentru detalii";
+  document.getElementById("d-followup").textContent = _followupAzi.length;
+  document.getElementById("d-followup-sub").textContent = _followupAzi.length + " scadente";
+  document.getElementById("d-offers").textContent = _ofertelunaArr.length;
+  document.getElementById("d-offers-sub").textContent = _ofertelunaArr.reduce((s,o)=>s+(o.total||0),0).toLocaleString("ro-RO",{maximumFractionDigits:0})+" LEI total";
+  const pipelineTotal = _pipelineActiv.reduce((s,o)=>s+(o.valoare||0),0);
+  document.getElementById("d-pipeline").textContent = pipelineTotal.toLocaleString("ro-RO",{maximumFractionDigits:0})+" LEI";
 
-  // Oferte luna
-  const offersLuna=allOffers.filter(o=>o.createdAt&&new Date(o.createdAt)>=luna).length;
-  document.getElementById("d-offers").textContent=offersLuna;
-  document.getElementById("d-offers-sub").textContent="în această lună";
-
-  // Pipeline total
-  const pipelineTotal=allOpps.filter(o=>!["Câștigat","Pierdut"].includes(o.etapa)).reduce((s,o)=>s+(o.valoare||0),0);
-  document.getElementById("d-pipeline").textContent=pipelineTotal.toLocaleString('ro-RO',{maximumFractionDigits:0})+" LEI";
+  // Oferte Draft
+  const _draftOffers = allOffers.filter(o=>o.status==="Draft");
+  _dashData.draftOffers = _draftOffers;
+  const draftBar = document.getElementById("dash-draft-bar");
+  if(draftBar) {
+    if(_draftOffers.length > 0) {
+      draftBar.style.display = "flex";
+      document.getElementById("d-draft-count").textContent = _draftOffers.length;
+      const draftVal = _draftOffers.reduce((s,o)=>s+(o.total||0),0);
+      document.getElementById("d-draft-val").textContent =
+        "Valoare totală: " + draftVal.toLocaleString("ro-RO",{maximumFractionDigits:0}) + " LEI — Aceste oferte nu au fost trimise clienților";
+    } else {
+      draftBar.style.display = "none";
+    }
+  }
 
   // Leaduri inactive
   const inactive=allLeads.filter(l=>{
@@ -2970,7 +3265,13 @@ async function loadDashboard(){
   const inEl=document.getElementById("dash-inactive");
   if(inEl) inEl.innerHTML=inactive.length?`<div class="tw2" style="border:none"><table><thead><tr><th>Scor</th><th>Nume</th><th>Companie</th><th>Inactiv</th><th></th></tr></thead><tbody>${inactive.map(l=>{
     const z=l.ultimaActivitate?Math.floor((new Date()-new Date(l.ultimaActivitate))/86400000):"—";
-    return `<tr><td>${scorRing(l.scor)}</td><td><b>${l.nume||""}</b></td><td>${l.companie||""}</td><td><span style="color:var(--dng);font-size:12px">${z} zile</span></td><td><button class="abt" onclick="openLeadDetail('${l.id}')">Deschide</button></td></tr>`;
+    return `<tr style="cursor:pointer" onclick="openLeadDetail('${l.id}')">
+      <td>${scorRing(l.scor)}</td>
+      <td><b style="color:var(--acc)">${l.nume||""}</b></td>
+      <td>${l.companie||""}</td>
+      <td><span style="color:var(--dng);font-size:12px">${z} zile</span></td>
+      <td><button class="abt" onclick="event.stopPropagation();openLeadDetail('${l.id}')">Deschide</button></td>
+    </tr>`;
   }).join("")}</tbody></table></div>` : '<div class="empty">Niciun lead inactiv 🎉</div>';
 
   // Activitate recenta
@@ -2978,32 +3279,60 @@ async function loadDashboard(){
   const tipIcon={Apel:"📞",Email:"📧",WhatsApp:"📱",Vizită:"🤝",Demo:"💻","Notă internă":"📝"};
   const tipDot={Apel:"bl",Email:"gr",WhatsApp:"wn",Vizită:"bl",Demo:"bl","Notă internă":"gy"};
   if(actEl) actEl.innerHTML=allActivities.length?`<div class="tl">${allActivities.slice(0,5).map(a=>`
-    <div class="tli"><div class="tld ${tipDot[a.tip]||'gy'}"></div><div class="tlb">
-      <div class="tlt">${tipIcon[a.tip]||"📝"} ${a.tip} — ${a.leadNume||a.lead||"—"}</div>
-      <div class="tlm">${a.agent||""} · ${a.dataOra?new Date(a.dataOra).toLocaleDateString('ro-RO'):""}${a.durata?` · ${a.durata} min`:""}</div>
-      ${a.text?`<div class="tln">${a.text.slice(0,80)}${a.text.length>80?"...":""}</div>`:""}
-    </div></div>`).join("")}</div>`:'<div class="empty">Nicio activitate recentă</div>';
+    <div class="tli" style="cursor:${a.leadId?'pointer':'default'}" onclick="${a.leadId?`openLeadDetail('${a.leadId}')`:''}">
+      <div class="tld ${tipDot[a.tip]||'gy'}"></div>
+      <div class="tlb">
+        <div class="tlt">${tipIcon[a.tip]||"📝"} ${a.tip} — <span style="${a.leadId?'color:var(--acc)':''}">
+          ${a.leadNume||a.lead||"—"}</span></div>
+        <div class="tlm">${a.agent||""} · ${a.dataOra?new Date(a.dataOra).toLocaleDateString('ro-RO'):""}${a.durata?` · ${a.durata} min`:""}</div>
+        ${a.text?`<div class="tln">${a.text.slice(0,80)}${a.text.length>80?"...":""}</div>`:""}
+        ${a.leadId?`<div style="font-size:10.5px;color:var(--acc);margin-top:3px">↗ click pentru fișa lead</div>`:""}
+      </div>
+    </div>`).join("")}</div>
+    <div style="text-align:right;margin-top:8px">
+      <button class="btn bg bs" onclick="dashDrill('activitati-recente')">Vezi toate activitățile ↗</button>
+    </div>`:'<div class="empty">Nicio activitate recentă</div>';
 
   // Alerte
   const alerts=[];
   allLeads.filter(l=>{const z=l.ultimaActivitate?Math.floor((new Date()-new Date(l.ultimaActivitate))/86400000):999;return z>=1&&!l.responsabilId;}).slice(0,2).forEach(l=>alerts.push({type:"r",text:`Lead fără responsabil: ${l.nume}`,sub:"Alocare necesară"}));
   allLeads.filter(l=>{if(!l.followup)return false;const fu=new Date(l.followup);return fu<azi;}).slice(0,3).forEach(l=>alerts.push({type:"w",text:`Follow-up depășit: ${l.nume}`,sub:`Data: ${new Date(l.followup).toLocaleDateString('ro-RO')}`}));
   allOffers.filter(o=>{if(!o.valabilitatePana||o.status==="Acceptată")return false;const v=new Date(o.valabilitatePana);const diff=Math.ceil((v-new Date())/86400000);return diff>=0&&diff<=3;}).slice(0,2).forEach(o=>alerts.push({type:"w",text:`Ofertă expiră curând: ${o.nr}`,sub:`${(o.total||0).toLocaleString('ro-RO')} LEI · ${o.client}`}));
-  const alertEl=document.getElementById("dash-alerts");
-  const alertCount=document.getElementById("dash-alert-count");
-  if(alertCount) alertCount.textContent=alerts.length;
-  if(alertEl) alertEl.innerHTML=alerts.length?alerts.map(a=>`
-    <div class="ai"><div class="adot" style="background:${a.type==='r'?'var(--dng)':'var(--wrn)'}"></div><div><div>${a.text}</div><div style="font-size:11px;color:var(--mut)">${a.sub}</div></div></div>`).join(""):'<div class="empty">Nicio alertă activă 🎉</div>';
+  // Store alerts data for clicking
+  const alertsData = [];
+  allLeads.filter(l=>{const z=l.ultimaActivitate?Math.floor((new Date()-new Date(l.ultimaActivitate))/86400000):999;return z>=1&&!l.responsabilId;}).slice(0,2)
+    .forEach(l=>alertsData.push({type:"r",text:`Lead fără responsabil: ${l.nume}`,sub:"Alocare necesară",action:`openLeadDetail('${l.id}')`}));
+  allLeads.filter(l=>{if(!l.followup)return false;const fu=new Date(l.followup);return fu<azi;}).slice(0,3)
+    .forEach(l=>alertsData.push({type:"w",text:`Follow-up depășit: ${l.nume}`,sub:`Data: ${new Date(l.followup).toLocaleDateString('ro-RO')}`,action:`openLeadDetail('${l.id}')`}));
+  allOffers.filter(o=>{if(!o.valabilitatePana||o.status==="Acceptată")return false;const v=new Date(o.valabilitatePana);const diff=Math.ceil((v-new Date())/86400000);return diff>=0&&diff<=3;}).slice(0,2)
+    .forEach(o=>alertsData.push({type:"w",text:`Ofertă expiră curând: ${o.nr}`,sub:`${(o.total||0).toLocaleString('ro-RO')} LEI · ${o.client}`,action:`viewOffer('${o.id}')`}));
+  if(alertCount) alertCount.textContent=alertsData.length;
+  if(alertEl) alertEl.innerHTML=alertsData.length?alertsData.map(a=>`
+    <div class="ai" style="cursor:pointer" onclick="${a.action}">
+      <div class="adot" style="background:${a.type==='r'?'var(--dng)':'var(--wrn)'}"></div>
+      <div style="flex:1">
+        <div style="color:var(--acc)">${a.text}</div>
+        <div style="font-size:11px;color:var(--mut)">${a.sub}</div>
+      </div>
+      <span style="font-size:11px;color:var(--acc)">↗</span>
+    </div>`).join(""):'<div class="empty">Nicio alertă activă 🎉</div>';
 
   // Tasks
-  const tasks=allLeads.filter(l=>l.followup).map(l=>({text:`Follow-up: ${l.nume||""}`,sub:new Date(l.followup).toLocaleDateString('ro-RO')+" · "+( allUsers.find(u=>u.id===l.responsabilId)?.name||"—"),scadent:new Date(l.followup)<=azi})).slice(0,5);
+  const taskLeads = allLeads.filter(l=>l.followup).sort((a,b)=>new Date(a.followup)-new Date(b.followup)).slice(0,8);
   const tasksEl=document.getElementById("dash-tasks");
-  if(tasksEl) tasksEl.innerHTML=tasks.length?tasks.map(t=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:7px;background:var(--bg);border-radius:var(--r);margin-bottom:5px">
-      <input type="checkbox" style="accent-color:var(--acc)">
-      <div style="flex:1"><div style="font-size:12.5px;font-weight:500">${t.text}</div><div style="font-size:11px;color:var(--mut)">${t.sub}</div></div>
-      <span class="tag ${t.scadent?'t-red':'t-warn'}">${t.scadent?'Scadent':'Planificat'}</span>
-    </div>`).join(""):'<div class="empty">Nicio sarcină pentru azi</div>';
+  if(tasksEl) tasksEl.innerHTML=taskLeads.length?taskLeads.map(l=>{
+    const scadent=new Date(l.followup)<=azi;
+    const resp=allUsers.find(u=>u.id===l.responsabilId)?.name||"—";
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px;background:var(--bg);border-radius:var(--r);margin-bottom:5px;cursor:pointer" onclick="openLeadDetail('${l.id}')">
+      <input type="checkbox" style="accent-color:var(--acc)" onclick="event.stopPropagation()">
+      <div style="flex:1">
+        <div style="font-size:12.5px;font-weight:500;color:var(--acc)">Follow-up: ${l.nume||""}</div>
+        <div style="font-size:11px;color:var(--mut)">${new Date(l.followup).toLocaleDateString('ro-RO')} · ${resp}</div>
+      </div>
+      <span class="tag ${scadent?'t-red':'t-warn'}">${scadent?'Scadent':'Planificat'}</span>
+    </div>`;
+  }).join("")+`<div style="text-align:right;margin-top:8px"><button class="btn bg bs" onclick="dashDrill('followup-azi')">Toate follow-up-urile ↗</button></div>`
+  :'<div class="empty">Nicio sarcină pentru azi</div>';
 }
 
 // ============================================================
