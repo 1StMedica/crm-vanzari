@@ -3124,7 +3124,7 @@ function dashDrill(type) {
           <td>${scorRing(l.scor||0)}</td>
           <td><b style="color:var(--acc)">${l.nume||""}</b></td>
           <td>${l.companie||""}</td>
-          <td><span style="color:${depasit?'var(--dng)':'var(--wrn)';font-weight:500}">${fu.toLocaleDateString("ro-RO")}</span></td>
+          <td><span style="color:${depasit?'var(--dng)':'var(--wrn)'};font-weight:500">${fu.toLocaleDateString("ro-RO")}</span></td>
           <td>${allUsers.find(u=>u.id===l.responsabilId)?.name||"—"}</td>
           <td><span class="tag t-gray">${l.status||"Nou"}</span></td>
         </tr>`;
