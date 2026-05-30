@@ -365,6 +365,46 @@ tr:hover td{background:#FAFAF8}
   .srch{display:none}
 }
 
+
+/* ============================================================
+   SEARCHABLE SELECT (global)
+   ============================================================ */
+.ss-wrap{position:relative}
+.ss-input{
+  width:100%;padding:8px 30px 8px 11px;border:1px solid var(--brd);border-radius:var(--r);
+  font-size:13px;font-family:inherit;background:var(--surf);color:var(--txt);cursor:pointer;
+  box-sizing:border-box;text-align:left;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ss-input:focus{outline:none;border-color:var(--acc)}
+.ss-input.placeholder{color:var(--mut)}
+.ss-panel{
+  position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:5000;
+  background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);
+  box-shadow:0 8px 24px rgba(0,0,0,.15);max-height:280px;overflow:hidden;
+  display:none;flex-direction:column;
+}
+.ss-panel.open{display:flex}
+.ss-search{
+  padding:8px;border-bottom:1px solid var(--brd);position:sticky;top:0;background:var(--surf);
+}
+.ss-search input{
+  width:100%;padding:6px 10px;border:1px solid var(--brd);border-radius:var(--r);
+  font-size:12.5px;font-family:inherit;box-sizing:border-box;
+}
+.ss-search input:focus{outline:none;border-color:var(--acc)}
+.ss-options{overflow-y:auto;max-height:230px}
+.ss-opt{
+  padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--bg);
+  white-space:normal;line-height:1.35;
+}
+.ss-opt:hover,.ss-opt.active{background:var(--accl);color:var(--acc)}
+.ss-opt.selected{background:var(--accl);font-weight:500}
+.ss-opt.ss-empty{color:var(--mut);cursor:default;text-align:center;font-size:12px}
+.ss-opt.ss-empty:hover{background:none}
+
 </style>
 </head>
 <body>
@@ -1431,7 +1471,16 @@ function toast(msg, dur=3000) {
 // ============================================================
 // MODAL HELPERS
 // ============================================================
-function openModal(id) { document.getElementById(id).style.display = "flex"; }
+function openModal(id) {
+  document.getElementById(id).style.display = "flex";
+  setTimeout(()=>{
+    const modal=document.getElementById(id);
+    if(modal){
+      enhanceSelects(modal);
+      modal.querySelectorAll("select[data-ss-done]").forEach(s=>{if(s._ssRebuild)s._ssRebuild();});
+    }
+  }, 60);
+}
 function closeModal(id) { document.getElementById(id).style.display = "none"; }
 document.querySelectorAll(".mo").forEach(m => m.addEventListener("click", e => { if(e.target===m) m.style.display="none"; }));
 
@@ -3700,6 +3749,146 @@ document.addEventListener("touchend", e => {
   if(touchStartX < 30 && dx > 60) toggleSidebar(); // swipe right from left edge
   if(dx < -60 && document.getElementById("sb").classList.contains("open")) closeSidebar(); // swipe left to close
 }, {passive:true});
+
+
+// ============================================================
+// SEARCHABLE SELECT — transformă toate <select> în dropdown cu căutare
+// ============================================================
+const SS_MIN_OPTIONS = 5; // doar dropdown-uri cu >= 5 optiuni devin searchable
+
+function enhanceSelects(root) {
+  root = root || document;
+  root.querySelectorAll("select:not([data-ss-done])").forEach(sel => {
+    // Skip if too few options or explicitly excluded
+    if(sel.dataset.noSearch !== undefined) return;
+    if(sel.options.length < SS_MIN_OPTIONS) return;
+    makeSearchable(sel);
+  });
+}
+
+function makeSearchable(sel) {
+  sel.dataset.ssDone = "1";
+  sel.style.display = "none";
+
+  const wrap = document.createElement("div");
+  wrap.className = "ss-wrap";
+  sel.parentNode.insertBefore(wrap, sel);
+  wrap.appendChild(sel);
+
+  const display = document.createElement("button");
+  display.type = "button";
+  display.className = "ss-input";
+  wrap.appendChild(display);
+
+  const panel = document.createElement("div");
+  panel.className = "ss-panel";
+  panel.innerHTML = `
+    <div class="ss-search"><input type="text" placeholder="🔍 Caută..." autocomplete="off"></div>
+    <div class="ss-options"></div>`;
+  wrap.appendChild(panel);
+
+  const searchInput = panel.querySelector(".ss-search input");
+  const optsBox     = panel.querySelector(".ss-options");
+
+  function syncDisplay() {
+    const opt = sel.options[sel.selectedIndex];
+    const txt = opt ? opt.textContent : "";
+    display.textContent = txt || "— Selectează —";
+    display.classList.toggle("placeholder", !sel.value);
+  }
+
+  function buildOptions(filter) {
+    const f = (filter||"").toLowerCase();
+    optsBox.innerHTML = "";
+    let count = 0;
+    Array.from(sel.options).forEach((opt, idx) => {
+      const text = opt.textContent;
+      if(f && !text.toLowerCase().includes(f)) return;
+      count++;
+      const div = document.createElement("div");
+      div.className = "ss-opt" + (idx===sel.selectedIndex ? " selected" : "");
+      div.textContent = text;
+      div.onclick = () => {
+        sel.selectedIndex = idx;
+        sel.dispatchEvent(new Event("change", {bubbles:true}));
+        syncDisplay();
+        closePanel();
+      };
+      optsBox.appendChild(div);
+    });
+    if(count===0) {
+      const e = document.createElement("div");
+      e.className = "ss-opt ss-empty";
+      e.textContent = "Niciun rezultat";
+      optsBox.appendChild(e);
+    }
+  }
+
+  function openPanel() {
+    document.querySelectorAll(".ss-panel.open").forEach(p=>p.classList.remove("open"));
+    buildOptions("");
+    panel.classList.add("open");
+    searchInput.value = "";
+    setTimeout(()=>searchInput.focus(), 30);
+  }
+  function closePanel() { panel.classList.remove("open"); }
+
+  display.onclick = (e) => {
+    e.stopPropagation();
+    if(panel.classList.contains("open")) closePanel();
+    else openPanel();
+  };
+  searchInput.oninput = () => buildOptions(searchInput.value);
+  searchInput.onkeydown = (e) => {
+    if(e.key==="Escape") closePanel();
+    if(e.key==="Enter") {
+      e.preventDefault();
+      const first = optsBox.querySelector(".ss-opt:not(.ss-empty)");
+      if(first) first.click();
+    }
+  };
+
+  // Close on outside click
+  document.addEventListener("click", (e) => {
+    if(!wrap.contains(e.target)) closePanel();
+  });
+
+  // Keep display synced if select changes programmatically
+  const obs = new MutationObserver(() => { rebuildIfNeeded(); syncDisplay(); });
+  obs.observe(sel, {childList:true});
+
+  // Re-sync options when they change (e.g. populated dynamically)
+  sel._ssRebuild = () => { syncDisplay(); };
+
+  let lastOptCount = sel.options.length;
+  function rebuildIfNeeded() {
+    if(sel.options.length !== lastOptCount) {
+      lastOptCount = sel.options.length;
+    }
+  }
+
+  syncDisplay();
+}
+
+// Re-sync a specific select's display after programmatic value change
+function ssSync(selId) {
+  const sel = document.getElementById(selId);
+  if(sel && sel._ssRebuild) sel._ssRebuild();
+}
+
+// Re-enhance after dynamic content loads
+function refreshSearchables() {
+  enhanceSelects(document);
+  // Sync all existing
+  document.querySelectorAll("select[data-ss-done]").forEach(sel=>{
+    if(sel._ssRebuild) sel._ssRebuild();
+  });
+}
+
+// Initial enhancement after DOM ready + periodic for dynamic selects
+document.addEventListener("DOMContentLoaded", () => setTimeout(refreshSearchables, 500));
+setInterval(refreshSearchables, 2000);
+
 
 </script>
 </body>
