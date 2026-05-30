@@ -405,6 +405,25 @@ tr:hover td{background:#FAFAF8}
 .ss-opt.ss-empty{color:var(--mut);cursor:default;text-align:center;font-size:12px}
 .ss-opt.ss-empty:hover{background:none}
 
+
+/* Contact autocomplete */
+.contact-ac{
+  position:absolute;top:100%;left:0;right:0;z-index:6000;
+  background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);
+  box-shadow:0 8px 24px rgba(0,0,0,.15);max-height:240px;overflow-y:auto;margin-top:2px;
+}
+.contact-ac-item{
+  padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--bg);font-size:13px;
+}
+.contact-ac-item:hover{background:var(--accl)}
+.contact-ac-item .cai-name{font-weight:500;color:var(--acc)}
+.contact-ac-item .cai-meta{font-size:11px;color:var(--mut);margin-top:1px}
+.contact-ac-new{
+  padding:8px 12px;cursor:pointer;font-size:12.5px;color:var(--suc);
+  border-top:1px solid var(--brd);background:var(--sucl);font-weight:500;
+}
+.contact-ac-new:hover{background:#D1FAE5}
+
 </style>
 </head>
 <body>
@@ -558,7 +577,7 @@ tr:hover td{background:#FAFAF8}
       <select class="fi" style="width:115px" id="f-judet" onchange="filterLeads()"><option value="">Toate județele</option></select>
       <select class="fi" style="width:110px" id="f-scor" onchange="filterLeads()"><option value="">Scor: toți</option><option value="hot">Hot (70+)</option><option value="warm">Warm (40-69)</option><option value="cold">Cold (&lt;40)</option></select>
       <button class="btn bg bs" style="margin-left:auto" onclick="exportLeadsCSV()">↓ Export CSV</button>
-      <button class="btn bp" onclick="openModal('m-lead')">+ Lead nou</button>
+      <button class="btn bp" onclick="newLead()">+ Lead nou</button>
     </div>
     <div style="background:var(--accl);border:1px solid #BFDBFE;border-radius:var(--r);padding:7px 12px;font-size:12px;color:#1D4ED8;margin-bottom:12px">
       <b>Scoring automat:</b> Hot ≥70 · Warm 40–69 · Cold &lt;40. Calculat din sursă, interes, activitate și etapă pipeline.
@@ -901,8 +920,16 @@ tr:hover td{background:#FAFAF8}
   <div class="mh"><div class="mt" id="m-lead-title">Lead nou</div><div class="mx" onclick="closeModal('m-lead')">✕</div></div>
   <input type="hidden" id="m-lead-id">
   <div class="f2">
-    <div class="fr"><label class="fl">Nume *</label><input class="fi" id="ml-nume" placeholder="Ion Popescu"></div>
-    <div class="fr"><label class="fl">Companie</label><input class="fi" id="ml-companie" placeholder="Construct SRL"></div>
+    <div class="fr" style="position:relative">
+      <label class="fl">Nume * <span style="font-size:10px;color:var(--acc)">(caută în contacte)</span></label>
+      <input class="fi" id="ml-nume" placeholder="Ion Popescu" autocomplete="off" oninput="contactAutocomplete('nume',this.value)" onfocus="contactAutocomplete('nume',this.value)">
+      <div id="ml-nume-ac" class="contact-ac" style="display:none"></div>
+    </div>
+    <div class="fr" style="position:relative">
+      <label class="fl">Companie <span style="font-size:10px;color:var(--acc)">(caută în contacte)</span></label>
+      <input class="fi" id="ml-companie" placeholder="Construct SRL" autocomplete="off" oninput="contactAutocomplete('companie',this.value)" onfocus="contactAutocomplete('companie',this.value)">
+      <div id="ml-companie-ac" class="contact-ac" style="display:none"></div>
+    </div>
     <div class="fr"><label class="fl">Telefon *</label><input class="fi" id="ml-tel" placeholder="0721 234 567"></div>
     <div class="fr"><label class="fl">Email</label><input class="fi" id="ml-email" type="email" placeholder="ion@construct.ro"></div>
     <div class="fr"><label class="fl">Sursă *</label>
@@ -1980,6 +2007,64 @@ function leadsGoPage(p) { leadsPage=p; renderLeadsTable(); }
 function filterLeads() { leadsPage=0; renderLeadsTable(); }
 function toggleAllCB(cb) { document.querySelectorAll(".lead-cb").forEach(c=>c.checked=cb.checked); }
 
+
+// ============================================================
+// CONTACT AUTOCOMPLETE in lead form
+// ============================================================
+function contactAutocomplete(field, value) {
+  const acEl = document.getElementById("ml-"+field+"-ac");
+  if(!acEl) return;
+  const q = (value||"").toLowerCase().trim();
+  if(q.length < 1) { acEl.style.display="none"; return; }
+
+  // Search contacts by name or company
+  const matches = allContacts.filter(c => {
+    const n = (c.nume||"").toLowerCase();
+    const comp = (c.companie||"").toLowerCase();
+    return n.includes(q) || comp.includes(q);
+  }).slice(0, 8);
+
+  if(!matches.length) {
+    acEl.style.display="none";
+    return;
+  }
+
+  acEl.innerHTML = matches.map(c => `
+    <div class="contact-ac-item" onclick="fillFromContact('${c.id}')">
+      <div class="cai-name">${c.nume||""}</div>
+      <div class="cai-meta">${[c.companie,c.functie,c.telefon].filter(Boolean).join(" · ")||"—"}</div>
+    </div>`).join("");
+  acEl.style.display="block";
+}
+
+function fillFromContact(contactId) {
+  const c = allContacts.find(x=>x.id===contactId);
+  if(!c) return;
+  // Populate all matching fields
+  document.getElementById("ml-nume").value     = c.nume||"";
+  document.getElementById("ml-companie").value = c.companie||"";
+  document.getElementById("ml-tel").value      = c.telefon||"";
+  document.getElementById("ml-email").value    = c.email||"";
+  if(c.judet) { const j=document.getElementById("ml-judet"); if(j){j.value=c.judet; if(j._ssRebuild)j._ssRebuild();} }
+  // Hide both autocomplete dropdowns
+  document.getElementById("ml-nume-ac").style.display="none";
+  document.getElementById("ml-companie-ac").style.display="none";
+  // Mark that this lead is linked to existing contact
+  document.getElementById("m-lead").dataset.contactId = contactId;
+  toast("Date preluate din contact: "+(c.nume||""));
+}
+
+// Close autocomplete on outside click
+document.addEventListener("click", function(e) {
+  if(!e.target.closest("#ml-nume") && !e.target.closest("#ml-nume-ac")) {
+    const el=document.getElementById("ml-nume-ac"); if(el)el.style.display="none";
+  }
+  if(!e.target.closest("#ml-companie") && !e.target.closest("#ml-companie-ac")) {
+    const el=document.getElementById("ml-companie-ac"); if(el)el.style.display="none";
+  }
+});
+
+
 async function saveLead() {
   const id = document.getElementById("m-lead-id").value;
   const data = {
@@ -2004,13 +2089,59 @@ async function saveLead() {
   try {
     if(id) { await db.collection("leaduri").doc(id).update(data); toast("Lead actualizat."); }
     else { data.createdAt=new Date().toISOString(); data.createdBy=currentUser.uid; await db.collection("leaduri").add(data); toast("Lead salvat."); }
+
+    // Auto-add to Contacts if not exists (match by nume + companie)
+    const linkedContactId = document.getElementById("m-lead").dataset.contactId;
+    if(!linkedContactId) {
+      const exists = allContacts.find(c =>
+        (c.nume||"").toLowerCase().trim() === data.nume.toLowerCase().trim() &&
+        (c.companie||"").toLowerCase().trim() === (data.companie||"").toLowerCase().trim()
+      );
+      if(!exists && data.nume) {
+        await db.collection("contacte").add({
+          nume:     data.nume,
+          companie: data.companie||"",
+          telefon:  data.telefon||"",
+          email:    data.email||"",
+          judet:    data.judet||"",
+          functie:  "",
+          tip:      "Prospect",
+          gdpr:     "acordat",
+          sursa:    "Auto din lead",
+          createdAt:new Date().toISOString(),
+        });
+        await loadContacts();
+        toast("Lead salvat + adăugat automat în Contacte.");
+      }
+    }
+
+    // Clear contact link flag
+    delete document.getElementById("m-lead").dataset.contactId;
     closeModal("m-lead"); await loadLeads();
     await writeAudit(`Lead ${id?"actualizat":"creat"}: ${data.nume} / ${data.companie}`);
   } catch(e) { toast("Eroare: "+e.message); }
 }
 
+function newLead() {
+  document.getElementById("m-lead-id").value = "";
+  document.getElementById("m-lead-title").textContent = "Lead nou";
+  ["nume","companie","tel","email","valoare","obs"].forEach(f=>{const el=document.getElementById("ml-"+f);if(el)el.value="";});
+  document.getElementById("ml-sursa").value="Website";
+  document.getElementById("ml-status").value="Nou";
+  document.getElementById("ml-prioritate").value="Medie";
+  document.getElementById("ml-followup").value="";
+  const j=document.getElementById("ml-judet"); if(j){j.value="";}
+  const i=document.getElementById("ml-interes"); if(i){i.value="";}
+  const r=document.getElementById("ml-responsabil"); if(r){r.value="";}
+  delete document.getElementById("m-lead").dataset.contactId;
+  document.getElementById("ml-nume-ac").style.display="none";
+  document.getElementById("ml-companie-ac").style.display="none";
+  openModal("m-lead");
+}
+
 function editLead(id) {
   const l = allLeads.find(x=>x.id===id); if(!l)return;
+  delete document.getElementById("m-lead").dataset.contactId;
   document.getElementById("m-lead-id").value = id;
   document.getElementById("m-lead-title").textContent = "Editare lead";
   document.getElementById("ml-nume").value = l.nume||"";
