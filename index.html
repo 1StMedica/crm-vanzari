@@ -670,20 +670,50 @@ tr:hover td{background:#FAFAF8}
   <!-- ======================== REPORTS ======================== -->
   <div id="p-reports" class="pg">
     <div style="display:flex;gap:8px;margin-bottom:14px">
-      <select class="fi" style="width:140px" id="f-rep-period"><option value="30">Această lună</option><option value="90">Ultimele 3 luni</option><option value="365">Anul acesta</option></select>
-      <select class="fi" style="width:120px" id="f-rep-agent"><option value="">Toți agenții</option></select>
+      <select class="fi" style="width:140px" id="f-rep-period" onchange="renderReports()"><option value="30">Această lună</option><option value="90">Ultimele 3 luni</option><option value="365">Anul acesta</option></select>
+      <select class="fi" style="width:120px" id="f-rep-agent" onchange="renderReports()"><option value="">Toți agenții</option></select>
       <button class="btn bg bs" style="margin-left:auto" onclick="exportReportCSV()">↓ Export CSV</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
-      <div class="kc" style="border-left:3px solid var(--acc)"><div class="kl">Activități înregistrate</div><div class="kv" id="r-act">—</div><div class="ks up" id="r-act-sub">—</div></div>
-      <div class="kc" style="border-left:3px solid var(--suc)"><div class="kl">Conversie lead→ofertă</div><div class="kv" id="r-conv">—</div><div class="ks up">față de perioadă anterioară</div></div>
-      <div class="kc" style="border-left:3px solid var(--wrn)"><div class="kl">Valoare ofertată</div><div class="kv" id="r-val">—</div><div class="ks" id="r-val-sub">—</div></div>
+    <!-- KPI-uri clickable -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
+      <div class="kc" style="border-left:3px solid var(--acc);cursor:pointer" onclick="drillDown('activitati')" title="Click pentru detalii">
+        <div class="kl">Activități înregistrate</div><div class="kv" id="r-act">—</div><div class="ks up" id="r-act-sub">—</div>
+        <div style="font-size:10.5px;color:var(--acc);margin-top:4px">↗ click pentru detalii</div>
+      </div>
+      <div class="kc" style="border-left:3px solid var(--suc);cursor:pointer" onclick="drillDown('leaduri')" title="Click pentru detalii">
+        <div class="kl">Conversie lead→ofertă</div><div class="kv" id="r-conv">—</div><div class="ks">față de perioadă anterioară</div>
+        <div style="font-size:10.5px;color:var(--suc);margin-top:4px">↗ click pentru detalii</div>
+      </div>
+      <div class="kc" style="border-left:3px solid var(--wrn);cursor:pointer" onclick="drillDown('oferte')" title="Click pentru detalii">
+        <div class="kl">Valoare ofertată (cu TVA)</div><div class="kv" id="r-val">—</div><div class="ks" id="r-val-sub">—</div>
+        <div style="font-size:10.5px;color:var(--wrn);margin-top:4px">↗ click pentru detalii</div>
+      </div>
+      <div class="kc" style="border-left:3px solid var(--pur);cursor:pointer" onclick="drillDown('oferte-acceptate')" title="Click pentru detalii">
+        <div class="kl">Oferte acceptate</div><div class="kv" id="r-acc">—</div><div class="ks up" id="r-acc-sub">—</div>
+        <div style="font-size:10.5px;color:var(--pur);margin-top:4px">↗ click pentru detalii</div>
+      </div>
+    </div>
+    <!-- Tabel oferte trimise -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="ch">
+        <div class="ct">Situația ofertelor trimise</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span id="r-offers-summary" style="font-size:12px;color:var(--mut)">—</span>
+          <button class="btn bg bs" onclick="drillDown('oferte')">Vezi toate</button>
+        </div>
+      </div>
+      <div class="tw2">
+        <table>
+          <thead><tr><th>Nr. ofertă</th><th>Client</th><th>Agent</th><th>Valoare (LEI)</th><th>Data</th><th>Status</th><th>Acțiuni</th></tr></thead>
+          <tbody id="r-offers-tbody"></tbody>
+        </table>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
       <div class="card">
         <div class="ct" style="margin-bottom:12px">Activitate per agent</div>
         <table>
-          <thead><tr><th>Agent</th><th>Apeluri</th><th>Email</th><th>Întâlniri</th><th>Oferte</th><th>Leaduri noi</th></tr></thead>
+          <thead><tr><th>Agent</th><th onclick="drillDown('activitati')" style="cursor:pointer;color:var(--acc)">Apeluri↗</th><th>Email</th><th>Întâlniri</th><th onclick="drillDown('oferte')" style="cursor:pointer;color:var(--acc)">Oferte↗</th><th onclick="drillDown('leaduri')" style="cursor:pointer;color:var(--acc)">Leaduri↗</th></tr></thead>
           <tbody id="r-agents-tbody"></tbody>
         </table>
       </div>
@@ -693,8 +723,19 @@ tr:hover td{background:#FAFAF8}
       </div>
     </div>
     <div class="card" style="margin-top:14px">
-      <div class="ct" style="margin-bottom:12px">Surse leaduri</div>
+      <div class="ch">
+        <div class="ct">Surse leaduri</div>
+        <span style="font-size:12px;color:var(--mut)" id="r-surse-total">—</span>
+      </div>
       <div class="bw" id="r-surse"></div>
+    </div>
+    <!-- Drill-down panel -->
+    <div id="r-drilldown" class="card" style="margin-top:14px;display:none">
+      <div class="ch">
+        <div class="ct" id="r-dd-title">Detalii</div>
+        <button class="abt" onclick="document.getElementById('r-drilldown').style.display='none'">✕ Închide</button>
+      </div>
+      <div id="r-dd-content"></div>
     </div>
   </div>
 
@@ -1019,6 +1060,38 @@ tr:hover td{background:#FAFAF8}
     <thead><tr><th>Cod</th><th>Denumire</th><th>Categorie</th><th>Preț cu TVA (LEI)</th><th>TVA%</th><th>Disc.max%</th><th></th></tr></thead>
     <tbody id="prodpick-tbody"></tbody>
   </table></div>
+</div></div>
+
+<!-- Vizualizare ofertă -->
+<div id="m-view-offer" class="mo" style="display:none"><div class="md" style="width:700px;max-width:97vw" onclick="event.stopPropagation()">
+  <div class="mh">
+    <div>
+      <div class="mt" id="vo-nr">—</div>
+      <div style="font-size:11.5px;color:var(--mut);margin-top:2px" id="vo-meta">—</div>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center">
+      <span class="tag" id="vo-status-tag">—</span>
+      <div class="mx" onclick="closeModal('m-view-offer')">✕</div>
+    </div>
+  </div>
+  <!-- Client info -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;font-size:13px" id="vo-client-info"></div>
+  <!-- Products table -->
+  <div style="font-size:11.5px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Produse / Servicii</div>
+  <div class="tw2" style="margin-bottom:14px">
+    <table>
+      <thead><tr><th>Cod</th><th>Denumire</th><th>UM</th><th>Cant.</th><th>Preț unitar (cu TVA)</th><th>Disc%</th><th>Total (cu TVA)</th></tr></thead>
+      <tbody id="vo-products"></tbody>
+    </table>
+  </div>
+  <!-- Totals -->
+  <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+    <div style="background:var(--bg);border-radius:var(--r);padding:12px 16px;min-width:240px" id="vo-totals"></div>
+  </div>
+  <!-- Terms -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12.5px;margin-bottom:16px" id="vo-terms"></div>
+  <!-- Actions -->
+  <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--brd)" id="vo-actions"></div>
 </div></div>
 
 <!-- Versiuni ofertă -->
@@ -2152,6 +2225,81 @@ async function loadOffers() {
   renderOffersTable();
 }
 
+
+// ============================================================
+// VIZUALIZARE OFERTĂ
+// ============================================================
+function viewOffer(id) {
+  const o = allOffers.find(x=>x.id===id); if(!o) return;
+  const stTag={Draft:"t-gray",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn","Pending aprobare":"t-warn"};
+
+  document.getElementById("vo-nr").textContent = "Ofertă " + (o.nr||"—");
+  document.getElementById("vo-meta").textContent =
+    (o.createdAt?new Date(o.createdAt).toLocaleDateString("ro-RO"):"—") +
+    "  ·  Agent: " + (o.agent||"—") +
+    "  ·  v" + (o.versiune||1);
+
+  const stEl = document.getElementById("vo-status-tag");
+  stEl.className = "tag " + (stTag[o.status]||"t-gray");
+  stEl.textContent = o.status||"Draft";
+
+  // Client info
+  document.getElementById("vo-client-info").innerHTML = [
+    ["Client", o.client||"—"],
+    ["Contact", o.contact||"—"],
+    ["Email", o.email||"—"],
+    ["Telefon", o.telefon||"—"],
+    ["CUI", o.cui||"—"],
+    ["Județ", o.judet||"—"],
+  ].map(([k,v])=>`<div><span style="color:var(--mut);font-size:11.5px">${k}:</span> ${v}</div>`).join("");
+
+  // Products
+  const prods = o.produse||[];
+  let grandTotal = 0;
+  document.getElementById("vo-products").innerHTML = prods.length ? prods.map(r=>{
+    const total = r.cantitate*(r.pret||0)*(1-(r.discount||0)/100);
+    grandTotal += total;
+    return `<tr>
+      <td style="font-size:12px">${r.cod||""}</td>
+      <td>${r.denumire||""}</td>
+      <td style="text-align:center">${r.um||"buc"}</td>
+      <td style="text-align:center">${r.cantitate||1}</td>
+      <td style="text-align:right">${(r.pret||0).toLocaleString("ro-RO")} LEI</td>
+      <td style="text-align:center">${r.discount||0}%</td>
+      <td style="text-align:right;font-weight:500">${Math.round(total).toLocaleString("ro-RO")} LEI</td>
+    </tr>`;
+  }).join("") : '<tr><td colspan="7" style="text-align:center;color:var(--mut)">—</td></tr>';
+
+  // Totals
+  const tvaInclus = grandTotal - grandTotal/1.21;
+  document.getElementById("vo-totals").innerHTML = `
+    <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px"><span style="color:var(--mut)">Total</span><span>${Math.round(grandTotal).toLocaleString("ro-RO")} LEI</span></div>
+    <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:var(--mut)"><span>din care TVA (21%)</span><span>${tvaInclus.toLocaleString("ro-RO",{minimumFractionDigits:2,maximumFractionDigits:2})} LEI</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0 3px;font-size:15px;font-weight:700;border-top:1px solid var(--brd);margin-top:6px">
+      <span>TOTAL DE PLATĂ</span><span style="color:var(--acc)">${Math.round(grandTotal).toLocaleString("ro-RO")} LEI</span>
+    </div>`;
+
+  // Terms
+  document.getElementById("vo-terms").innerHTML = [
+    ["Valabilitate", o.valabilitate||"—"],
+    ["Plată", o.plata||"—"],
+    ["Livrare", o.livrare||"—"],
+    ["Garanție", o.garantie||"—"],
+    ...(o.observatii?[["Observații", o.observatii]]:[]),
+  ].map(([k,v])=>`<div><span style="color:var(--mut);font-size:11.5px">${k}:</span> ${v}</div>`).join("");
+
+  // Actions
+  const canEdit = !["Acceptată"].includes(o.status);
+  document.getElementById("vo-actions").innerHTML = `
+    <button class="btn bg" onclick="generateOfferWordFromId('${o.id}');closeModal('m-view-offer')">📄 Word</button>
+    ${canEdit?`<button class="btn bg" onclick="closeModal('m-view-offer');editOfferInBuilder('${o.id}')">✏ Editează</button>`:""}
+    <button class="btn bg" onclick="closeModal('m-view-offer');duplicateOffer('${o.id}')">⧉ Duplică</button>
+    ${canEdit?`<button class="btn bg" style="color:var(--dng);border-color:var(--dng)" onclick="closeModal('m-view-offer');deleteOffer('${o.id}','${o.nr||""}')">🗑 Șterge</button>`:""}
+  `;
+
+  openModal("m-view-offer");
+}
+
 function renderOffersTable() {
   const st = document.getElementById("f-offer-status")?.value||"";
   const ag = document.getElementById("f-offer-agent")?.value||"";
@@ -2160,21 +2308,25 @@ function renderOffersTable() {
   if(!offers.length){tbody.innerHTML='<tr><td colspan="9"><div class="empty">Nicio ofertă</div></td></tr>';return;}
   const stTag={Draft:"t-gray",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn","Pending aprobare":"t-warn"};
   const azi=new Date();
+  const canEdit = o => !["Acceptată"].includes(o.status);
   tbody.innerHTML=offers.map(o=>{
     const val=o.valabilitatePana?new Date(o.valabilitatePana):null;
     const valStr=val?(val<azi?`<span style="color:var(--dng)">${val.toLocaleDateString('ro-RO')}</span>`:val.toLocaleDateString('ro-RO')):"—";
-    return `<tr>
-      <td><b>${o.nr||""}</b></td>
+    return `<tr style="cursor:pointer" onclick="viewOffer('${o.id}')">
+      <td onclick="event.stopPropagation()"><b style="color:var(--acc);cursor:pointer" onclick="viewOffer('${o.id}')">${o.nr||""}</b></td>
       <td>${o.client||""}</td>
-      <td><button class="abt" onclick="showVersions('${o.id}')" style="font-size:11px">v${o.versiune||1} ▾</button></td>
+      <td onclick="event.stopPropagation()"><button class="abt" onclick="showVersions('${o.id}')" style="font-size:11px">v${o.versiune||1} ▾</button></td>
       <td><b>${(o.total||0).toLocaleString('ro-RO',{maximumFractionDigits:0})} LEI</b></td>
       <td>${o.createdAt?new Date(o.createdAt).toLocaleDateString('ro-RO'):"—"}</td>
       <td>${valStr}</td>
       <td><span class="tag ${stTag[o.status]||'t-gray'}">${o.status||"Draft"}</span></td>
       <td>${o.agent||""}</td>
-      <td style="white-space:nowrap">
+      <td style="white-space:nowrap" onclick="event.stopPropagation()">
+        <button class="abt" onclick="viewOffer('${o.id}')">👁 Vezi</button>
         <button class="abt" onclick="generateOfferWordFromId('${o.id}')">📄 Word</button>
-        <button class="abt" onclick="duplicateOffer('${o.id}')">Duplică</button>
+        ${canEdit(o)?`<button class="abt" onclick="editOfferInBuilder('${o.id}')">✏ Edit</button>`:""}
+        <button class="abt" onclick="duplicateOffer('${o.id}')">⧉ Duplică</button>
+        ${canEdit(o)?`<button class="abt" style="color:var(--dng);border-color:var(--dng)" onclick="deleteOffer('${o.id}','${o.nr||""}')">🗑</button>`:""}
         ${o.status==="Pending aprobare" && (currentUserData?.role==="manager"||currentUserData?.role==="admin") ? 
           `<button class="abt" style="color:var(--suc);border-color:var(--suc)" onclick="approveOffer('${o.id}',true)">✓ Aprobă</button>
            <button class="abt" style="color:var(--dng);border-color:var(--dng)" onclick="approveOffer('${o.id}',false)">✕ Respinge</button>` : ""}
@@ -2366,11 +2518,63 @@ async function showVersions(id){
 
 async function duplicateOffer(id){
   const o=allOffers.find(x=>x.id===id);if(!o)return;
-  const nr=await getNextOfferNr();
-  const data={...o,nr,versiune:(o.versiune||1)+1,createdAt:new Date().toISOString(),status:"Draft"};
-  delete data.id;
-  await db.collection("oferte").add(data);
-  toast("Ofertă duplicată: "+nr); await loadOffers();
+  // Load into builder for full editing
+  loadOfferIntoBuilder(o, true);
+  gp("offerbuilder", null);
+  toast("Ofertă duplicată — editează și salvează ca ofertă nouă.");
+}
+
+async function editOfferInBuilder(id){
+  const o=allOffers.find(x=>x.id===id);if(!o)return;
+  currentOfferId = id;
+  loadOfferIntoBuilder(o, false);
+  gp("offerbuilder", null);
+}
+
+function loadOfferIntoBuilder(o, isDuplicate) {
+  // Reset builder first
+  document.getElementById("ob-rows").innerHTML="";
+  offerRowCount=0;
+  updateProdVisibility();
+  // Fill client data
+  document.getElementById("ob-client").value   = o.client||"";
+  document.getElementById("ob-contact").value  = o.contact||"";
+  document.getElementById("ob-email").value    = o.email||"";
+  document.getElementById("ob-tel").value      = o.telefon||"";
+  document.getElementById("ob-cui").value      = o.cui||"";
+  document.getElementById("ob-adresa").value   = o.adresa||"";
+  document.getElementById("ob-judet").value    = o.judet||"";
+  document.getElementById("ob-plata").value    = o.plata||"30% avans, rest la livrare";
+  document.getElementById("ob-livrare").value  = o.livrare||"";
+  document.getElementById("ob-garantie").value = o.garantie||"";
+  document.getElementById("ob-obs").value      = o.observatii||"";
+  document.getElementById("ob-status").value   = isDuplicate?"Draft":(o.status||"Draft");
+  document.getElementById("ob-nr").textContent = isDuplicate?"Ofertă duplicată (nr. nou la salvare)":`Editare ${o.nr||""}`;
+  // Add products
+  (o.produse||[]).forEach(r => addProductRow({
+    cod: r.cod, nume: r.denumire, pret: r.pret,
+    tva: r.tva, discMax: r.discount, um: r.um
+  }));
+  // Override discount to actual values from saved offer
+  setTimeout(()=>{
+    (o.produse||[]).forEach((r,i)=>{
+      const dEl=document.getElementById("ob-d-"+i);
+      const qEl=document.getElementById("ob-q-"+i);
+      if(dEl) dEl.value=r.discount||0;
+      if(qEl) qEl.value=r.cantitate||1;
+      calcOffer();
+    });
+  }, 100);
+}
+
+async function deleteOffer(id, nr) {
+  if(!confirm(`Ștergi oferta ${nr}? Această acțiune este ireversibilă.`)) return;
+  try {
+    await db.collection("oferte").doc(id).delete();
+    toast("Ofertă ștearsă: "+nr);
+    await loadOffers();
+    await writeAudit("Ofertă ștearsă: "+nr);
+  } catch(e) { toast("Eroare: "+e.message); }
 }
 
 // ============================================================
@@ -2805,20 +3009,63 @@ async function loadDashboard(){
 // ============================================================
 // REPORTS
 // ============================================================
+// Store filtered data for drillDown
+let _repData = {};
+
 function renderReports(){
-  const zile=parseInt(document.getElementById("f-rep-period")?.value||30);
-  const from=new Date(); from.setDate(from.getDate()-zile);
-  const actsIn=allActivities.filter(a=>a.dataOra&&new Date(a.dataOra)>=from);
-  document.getElementById("r-act").textContent=actsIn.length;
-  document.getElementById("r-act-sub").textContent=`în ultimele ${zile} zile`;
+  const zile  = parseInt(document.getElementById("f-rep-period")?.value||30);
+  const agent  = document.getElementById("f-rep-agent")?.value||"";
+  const from   = new Date(); from.setDate(from.getDate()-zile);
 
-  const leadsIn=allLeads.filter(l=>l.createdAt&&new Date(l.createdAt)>=from);
-  const offersIn=allOffers.filter(o=>o.createdAt&&new Date(o.createdAt)>=from);
-  const conv=leadsIn.length?Math.round(offersIn.length/leadsIn.length*100):0;
-  document.getElementById("r-conv").textContent=conv+"%";
+  let actsIn   = allActivities.filter(a=>a.dataOra&&new Date(a.dataOra)>=from);
+  let leadsIn  = allLeads.filter(l=>l.createdAt&&new Date(l.createdAt)>=from);
+  let offersIn = allOffers.filter(o=>o.createdAt&&new Date(o.createdAt)>=from);
+  if(agent) {
+    actsIn   = actsIn.filter(a=>a.agentId===agent||a.agent===allUsers.find(u=>u.id===agent)?.name);
+    offersIn = offersIn.filter(o=>o.agentId===agent);
+    leadsIn  = leadsIn.filter(l=>l.responsabilId===agent);
+  }
+  // Store for drillDown
+  _repData = { actsIn, leadsIn, offersIn, zile };
 
-  const valTotal=offersIn.reduce((s,o)=>s+(o.total||0),0);
-  document.getElementById("r-val").textContent=valTotal.toLocaleString('ro-RO',{maximumFractionDigits:0})+" LEI";
+  // KPI 1 — Activitati
+  document.getElementById("r-act").textContent    = actsIn.length;
+  document.getElementById("r-act-sub").textContent= `în ultimele ${zile} zile`;
+
+  // KPI 2 — Conversie
+  const conv = leadsIn.length ? Math.round(offersIn.length/leadsIn.length*100) : 0;
+  document.getElementById("r-conv").textContent   = conv+"%";
+
+  // KPI 3 — Valoare ofertata
+  const valTotal = offersIn.reduce((s,o)=>s+(o.total||0),0);
+  document.getElementById("r-val").textContent    = valTotal.toLocaleString("ro-RO",{maximumFractionDigits:0})+" LEI";
+
+  // KPI 4 — Oferte acceptate
+  const accepted = offersIn.filter(o=>o.status==="Acceptată");
+  const valAcc   = accepted.reduce((s,o)=>s+(o.total||0),0);
+  document.getElementById("r-acc").textContent    = accepted.length;
+  document.getElementById("r-acc-sub").textContent= valAcc.toLocaleString("ro-RO",{maximumFractionDigits:0})+" LEI acceptați";
+
+  // Tabel oferte trimise
+  const stTag={Draft:"t-gray",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn","Pending aprobare":"t-warn"};
+  const tbody2 = document.getElementById("r-offers-tbody");
+  const sortedOffers = [...offersIn].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  if(tbody2) tbody2.innerHTML = sortedOffers.length ? sortedOffers.map(o=>`
+    <tr style="cursor:pointer" onclick="viewOffer('${o.id}')">
+      <td><b style="color:var(--acc)">${o.nr||"—"}</b></td>
+      <td>${o.client||""}</td>
+      <td>${o.agent||""}</td>
+      <td style="font-weight:500">${(o.total||0).toLocaleString("ro-RO",{maximumFractionDigits:0})} LEI</td>
+      <td>${o.createdAt?new Date(o.createdAt).toLocaleDateString("ro-RO"):"—"}</td>
+      <td><span class="tag ${stTag[o.status]||"t-gray"}">${o.status||"Draft"}</span></td>
+      <td onclick="event.stopPropagation()">
+        <button class="abt" onclick="viewOffer('${o.id}')">👁</button>
+        <button class="abt" onclick="generateOfferWordFromId('${o.id}')">📄</button>
+      </td>
+    </tr>`).join("") : '<tr><td colspan="7" class="empty">Nicio ofertă în această perioadă</td></tr>';
+
+  const sumEl = document.getElementById("r-offers-summary");
+  if(sumEl) sumEl.textContent = `${offersIn.length} oferte · ${valTotal.toLocaleString("ro-RO",{maximumFractionDigits:0})} LEI total`;
 
   // Per agent
   const byAgent={};
@@ -2829,27 +3076,145 @@ function renderReports(){
     if(a.tip==="Email") byAgent[a.agent].email++;
     if(["Vizită","Demo"].includes(a.tip)) byAgent[a.agent].intalniri++;
   });
-  allOffers.filter(o=>o.createdAt&&new Date(o.createdAt)>=from).forEach(o=>{ if(o.agent&&byAgent[o.agent]) byAgent[o.agent].oferte++; });
-  allLeads.filter(l=>l.createdAt&&new Date(l.createdAt)>=from).forEach(l=>{ const ag=allUsers.find(u=>u.id===l.responsabilId)?.name; if(ag&&byAgent[ag]) byAgent[ag].leaduri++; });
+  offersIn.forEach(o=>{ if(o.agent&&byAgent[o.agent]) byAgent[o.agent].oferte++; });
+  leadsIn.forEach(l=>{ const ag=allUsers.find(u=>u.id===l.responsabilId)?.name; if(ag&&byAgent[ag]) byAgent[ag].leaduri++; });
   const tbody=document.getElementById("r-agents-tbody");
-  if(tbody) tbody.innerHTML=Object.entries(byAgent).map(([ag,s])=>`
-    <tr><td><b>${ag}</b></td><td>${s.apeluri}</td><td>${s.email}</td><td>${s.intalniri}</td><td>${s.oferte}</td><td>${s.leaduri}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">—</td></tr>';
+  if(tbody) tbody.innerHTML=Object.entries(byAgent).sort((a,b)=>(b[1].apeluri+b[1].email)-(a[1].apeluri+a[1].email)).map(([ag,s])=>`
+    <tr>
+      <td><b>${ag}</b></td>
+      <td style="cursor:pointer;color:var(--acc)" onclick="drillDownAgent('${ag}','activitati')">${s.apeluri}</td>
+      <td style="cursor:pointer;color:var(--acc)" onclick="drillDownAgent('${ag}','email')">${s.email}</td>
+      <td>${s.intalniri}</td>
+      <td style="cursor:pointer;color:var(--acc)" onclick="drillDownAgent('${ag}','oferte')">${s.oferte}</td>
+      <td style="cursor:pointer;color:var(--acc)" onclick="drillDownAgent('${ag}','leaduri')">${s.leaduri}</td>
+    </tr>`).join("")||'<tr><td colspan="6" class="empty">—</td></tr>';
 
   // Surse
   const surse={};
-  allLeads.filter(l=>l.createdAt&&new Date(l.createdAt)>=from).forEach(l=>{surse[l.sursa||"Necunoscut"]=(surse[l.sursa||"Necunoscut"]||0)+1;});
+  leadsIn.forEach(l=>{surse[l.sursa||"Necunoscut"]=(surse[l.sursa||"Necunoscut"]||0)+1;});
   const maxS=Math.max(...Object.values(surse),1);
   const surseEl=document.getElementById("r-surse");
+  const totalLeads=leadsIn.length;
   if(surseEl) surseEl.innerHTML=Object.entries(surse).sort((a,b)=>b[1]-a[1]).map(([s,n])=>`
-    <div class="br"><span class="blbl">${s}</span><div class="btrack"><div class="bfill" style="width:${Math.round(n/maxS*100)}%"></div></div><span style="font-size:12px;font-weight:500">${n}</span></div>`).join("");
+    <div class="br" style="cursor:pointer" onclick="drillDown('leaduri-sursa','${s}')" title="Click pentru lista leaduri din ${s}">
+      <span class="blbl">${s}</span>
+      <div class="btrack"><div class="bfill" style="width:${Math.round(n/maxS*100)}%"></div></div>
+      <span style="font-size:12px;font-weight:500;color:var(--acc)">${n} ↗</span>
+    </div>`).join("");
+  const surseTotalEl=document.getElementById("r-surse-total");
+  if(surseTotalEl) surseTotalEl.textContent=totalLeads+" leaduri total";
 
   // Motive pierdere
   const motive={};
-  allOpps.filter(o=>o.etapa==="Pierdut"&&o.createdAt&&new Date(o.createdAt)>=from).forEach(o=>{motive[o.motivPierdere||"Nespecificat"]=(motive[o.motivPierdere||"Nespecificat"]||0)+1;});
+  allOpps.filter(o=>o.etapa==="Pierdut").forEach(o=>{motive[o.motivPierdere||"Nespecificat"]=(motive[o.motivPierdere||"Nespecificat"]||0)+1;});
   const maxM=Math.max(...Object.values(motive),1);
   const motEl=document.getElementById("r-motive");
   if(motEl) motEl.innerHTML=Object.entries(motive).sort((a,b)=>b[1]-a[1]).map(([m,n])=>`
     <div class="br"><span class="blbl">${m}</span><div class="btrack"><div class="bfill" style="width:${Math.round(n/maxM*100)}%;background:var(--dng)"></div></div><span style="font-size:12px;font-weight:500">${n}</span></div>`).join("")||'<div class="empty">Nicio oportunitate pierdută</div>';
+}
+
+function drillDown(type, filter) {
+  const dd = document.getElementById("r-drilldown");
+  const title = document.getElementById("r-dd-title");
+  const content = document.getElementById("r-dd-content");
+  dd.style.display="block";
+  dd.scrollIntoView({behavior:"smooth", block:"nearest"});
+
+  const stTag={Draft:"t-gray",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn","Pending aprobare":"t-warn"};
+
+  if(type==="activitati") {
+    title.textContent = "Activități înregistrate (" + _repData.actsIn?.length + ")";
+    const tipIcon={Apel:"📞",Email:"📧",WhatsApp:"📱",Vizită:"🤝",Demo:"💻",Ofertare:"📋","Suport tehnic":"🔧","Notă internă":"📝"};
+    content.innerHTML = `<div class="tl">${(_repData.actsIn||[]).slice(0,30).map(a=>`
+      <div class="tli"><div class="tld bl"></div><div class="tlb">
+        <div class="tlt">${tipIcon[a.tip]||"📝"} ${a.tip} — ${a.leadNume||"—"}</div>
+        <div class="tlm">${a.agent||""} · ${a.dataOra?new Date(a.dataOra).toLocaleDateString("ro-RO"):""}</div>
+        ${a.text?`<div class="tln">${a.text.slice(0,100)}${a.text.length>100?"...":""}</div>`:""}
+      </div></div>`).join("")}</div>
+      ${(_repData.actsIn||[]).length>30?`<div style="text-align:center;margin-top:8px;font-size:12px;color:var(--mut)">Se afișează primele 30 din ${_repData.actsIn.length}</div>`:""}`;
+  }
+  else if(type==="leaduri") {
+    title.textContent = "Leaduri în perioadă (" + _repData.leadsIn?.length + ")";
+    content.innerHTML = `<div class="tw2"><table><thead><tr><th>Scor</th><th>Nume</th><th>Companie</th><th>Sursă</th><th>Status</th><th>Responsabil</th></tr></thead><tbody>${
+      (_repData.leadsIn||[]).map(l=>`<tr style="cursor:pointer" onclick="closeModal('r-drilldown');openLeadDetail('${l.id}')">
+        <td>${scorRing(l.scor||0)}</td><td><b>${l.nume||""}</b></td><td>${l.companie||""}</td>
+        <td>${l.sursa||""}</td><td><span class="tag t-gray">${l.status||"Nou"}</span></td>
+        <td>${allUsers.find(u=>u.id===l.responsabilId)?.name||"—"}</td></tr>`).join("")
+    }</tbody></table></div>`;
+  }
+  else if(type==="oferte" || type==="oferte-acceptate") {
+    const list = type==="oferte-acceptate"
+      ? (_repData.offersIn||[]).filter(o=>o.status==="Acceptată")
+      : (_repData.offersIn||[]);
+    title.textContent = (type==="oferte-acceptate"?"Oferte acceptate":"Toate ofertele") + " (" + list.length + ")";
+    const total = list.reduce((s,o)=>s+(o.total||0),0);
+    content.innerHTML = `
+      <div style="font-size:13px;font-weight:600;color:var(--acc);margin-bottom:10px">Total: ${total.toLocaleString("ro-RO",{maximumFractionDigits:0})} LEI</div>
+      <div class="tw2"><table><thead><tr><th>Nr.</th><th>Client</th><th>Agent</th><th>Valoare (LEI)</th><th>Data</th><th>Status</th></tr></thead><tbody>${
+      list.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(o=>`
+        <tr style="cursor:pointer" onclick="viewOffer('${o.id}')">
+          <td><b style="color:var(--acc)">${o.nr||"—"}</b></td>
+          <td>${o.client||""}</td><td>${o.agent||""}</td>
+          <td style="font-weight:500">${(o.total||0).toLocaleString("ro-RO",{maximumFractionDigits:0})} LEI</td>
+          <td>${o.createdAt?new Date(o.createdAt).toLocaleDateString("ro-RO"):"—"}</td>
+          <td><span class="tag ${stTag[o.status]||"t-gray"}">${o.status||""}</span></td>
+        </tr>`).join("")
+    }</tbody></table></div>`;
+  }
+  else if(type==="leaduri-sursa") {
+    const filtered = (_repData.leadsIn||[]).filter(l=>(l.sursa||"Necunoscut")===filter);
+    title.textContent = `Leaduri din sursa: ${filter} (${filtered.length})`;
+    content.innerHTML = `<div class="tw2"><table><thead><tr><th>Scor</th><th>Nume</th><th>Companie</th><th>Status</th><th>Responsabil</th></tr></thead><tbody>${
+      filtered.map(l=>`<tr style="cursor:pointer" onclick="openLeadDetail('${l.id}')">
+        <td>${scorRing(l.scor||0)}</td><td><b>${l.nume||""}</b></td><td>${l.companie||""}</td>
+        <td><span class="tag t-gray">${l.status||"Nou"}</span></td>
+        <td>${allUsers.find(u=>u.id===l.responsabilId)?.name||"—"}</td></tr>`).join("")
+    }</tbody></table></div>`;
+  }
+}
+
+function drillDownAgent(agentName, type) {
+  const dd = document.getElementById("r-drilldown");
+  const title = document.getElementById("r-dd-title");
+  const content = document.getElementById("r-dd-content");
+  dd.style.display="block";
+  dd.scrollIntoView({behavior:"smooth", block:"nearest"});
+
+  if(type==="activitati" || type==="email") {
+    const tipFilter = type==="email" ? ["Email"] : ["Apel","WhatsApp","Vizită","Demo","Suport tehnic","Ofertare"];
+    const list = (_repData.actsIn||[]).filter(a=>a.agent===agentName && tipFilter.includes(a.tip));
+    title.textContent = agentName + " — " + (type==="email"?"Emailuri":"Apeluri & Activități") + " (" + list.length + ")";
+    const tipIcon={Apel:"📞",Email:"📧",WhatsApp:"📱",Vizită:"🤝",Demo:"💻",Ofertare:"📋","Suport tehnic":"🔧"};
+    content.innerHTML = `<div class="tl">${list.map(a=>`
+      <div class="tli"><div class="tld bl"></div><div class="tlb">
+        <div class="tlt">${tipIcon[a.tip]||"📝"} ${a.tip} — ${a.leadNume||"—"}</div>
+        <div class="tlm">${a.dataOra?new Date(a.dataOra).toLocaleDateString("ro-RO"):""}</div>
+        ${a.text?`<div class="tln">${a.text.slice(0,100)}</div>`:""}
+      </div></div>`).join("")||"<div class='empty'>Nicio activitate</div>"}</div>`;
+  }
+  else if(type==="oferte") {
+    const list = (_repData.offersIn||[]).filter(o=>o.agent===agentName);
+    const total = list.reduce((s,o)=>s+(o.total||0),0);
+    title.textContent = agentName + " — Oferte (" + list.length + ") · " + total.toLocaleString("ro-RO",{maximumFractionDigits:0}) + " LEI";
+    const stTag={Draft:"t-gray",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red","Pending aprobare":"t-warn"};
+    content.innerHTML = `<div class="tw2"><table><thead><tr><th>Nr.</th><th>Client</th><th>Valoare</th><th>Status</th></tr></thead><tbody>${
+      list.map(o=>`<tr style="cursor:pointer" onclick="viewOffer('${o.id}')">
+        <td><b style="color:var(--acc)">${o.nr||"—"}</b></td><td>${o.client||""}</td>
+        <td>${(o.total||0).toLocaleString("ro-RO",{maximumFractionDigits:0})} LEI</td>
+        <td><span class="tag ${stTag[o.status]||"t-gray"}">${o.status||""}</span></td>
+      </tr>`).join("")
+    }</tbody></table></div>`;
+  }
+  else if(type==="leaduri") {
+    const list = (_repData.leadsIn||[]).filter(l=>allUsers.find(u=>u.id===l.responsabilId)?.name===agentName);
+    title.textContent = agentName + " — Leaduri noi (" + list.length + ")";
+    content.innerHTML = `<div class="tw2"><table><thead><tr><th>Scor</th><th>Nume</th><th>Companie</th><th>Status</th></tr></thead><tbody>${
+      list.map(l=>`<tr style="cursor:pointer" onclick="openLeadDetail('${l.id}')">
+        <td>${scorRing(l.scor||0)}</td><td><b>${l.nume||""}</b></td>
+        <td>${l.companie||""}</td><td><span class="tag t-gray">${l.status||"Nou"}</span></td>
+      </tr>`).join("")
+    }</tbody></table></div>`;
+  }
 }
 
 // ============================================================
