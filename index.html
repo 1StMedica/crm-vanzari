@@ -658,7 +658,7 @@ tr:hover td{background:#FAFAF8}
             <div class="fr"><label class="fl">Contact *</label><input class="fi" id="ob-contact" placeholder="Nume Prenume"></div>
             <div class="fr"><label class="fl">Email</label><input class="fi" id="ob-email" type="email" placeholder="email@companie.ro"></div>
             <div class="fr"><label class="fl">Telefon</label><input class="fi" id="ob-tel" placeholder="07xx xxx xxx"></div>
-            <div class="fr"><label class="fl">CUI</label><input class="fi" id="ob-cui" placeholder="RO12345678"></div>
+            <div class="fr"><label class="fl">CUI <span style="font-size:10px;color:var(--mut)">(doar cifre, fără RO)</span></label><input class="fi" id="ob-cui" placeholder="12345678" oninput="validateCUI(this)"><div id="ob-cui-err" style="display:none;font-size:11.5px;color:var(--dng);margin-top:3px">⚠ CUI-ul trebuie să conțină doar cifre (fără litere sau caractere speciale)</div></div>
             <div class="fr"><label class="fl">Județ</label>
               <select class="fi" id="ob-judet"><option value="">—</option></select>
             </div>
@@ -2541,7 +2541,7 @@ function viewOffer(id) {
   const cuiClean = (o.cui||"").replace(/[^0-9]/g,"");
   document.getElementById("vo-actions").innerHTML = `
     <button class="btn bg" onclick="generateOfferWordFromId('${o.id}');closeModal('m-view-offer')">📄 Word</button>
-    ${cuiClean.length===13?`<button class="btn bg" style="color:var(--suc);border-color:var(--suc)" onclick="showContract('${cuiClean}')">📋 Contract</button>`:""}
+    ${cuiClean.length>=2?`<button class="btn bg" style="color:var(--suc);border-color:var(--suc)" onclick="showContract('${cuiClean}')">📋 Contract</button>`:""}
     ${canEdit?`<button class="btn bg" onclick="closeModal('m-view-offer');editOfferInBuilder('${o.id}')">✏ Editează</button>`:""}
     <button class="btn bg" onclick="closeModal('m-view-offer');duplicateOffer('${o.id}')">⧉ Duplică</button>
     ${canEdit?`<button class="btn bg" style="color:var(--dng);border-color:var(--dng)" onclick="closeModal('m-view-offer');deleteOffer('${o.id}','${o.nr||""}')">🗑 Șterge</button>`:""}
@@ -2628,6 +2628,20 @@ function updateProdVisibility() {
   const wrap  = document.getElementById("ob-prod-table-wrap");
   if(empty) empty.style.display = rows.length>0 ? "none" : "block";
   if(wrap)  wrap.style.display  = rows.length>0 ? "block" : "none";
+}
+
+function validateCUI(input) {
+  var val = input.value;
+  var errEl = document.getElementById('ob-cui-err');
+  if (/[^0-9]/.test(val)) {
+    input.value = val.replace(/[^0-9]/g, '');
+    errEl.style.display = 'block';
+    input.style.borderColor = 'var(--dng)';
+    setTimeout(function() { errEl.style.display = 'none'; input.style.borderColor = ''; }, 4000);
+  } else {
+    errEl.style.display = 'none';
+    input.style.borderColor = '';
+  }
 }
 
 function calcOffer(){
@@ -2739,7 +2753,7 @@ async function saveOffer(){
     contact:    document.getElementById("ob-contact").value.trim(),
     email:      document.getElementById("ob-email").value.trim(),
     telefon:    document.getElementById("ob-tel").value.trim(),
-    cui:        document.getElementById("ob-cui").value.trim(),
+    cui:        document.getElementById("ob-cui").value.trim().replace(/[^0-9]/g,''),
     judet:      document.getElementById("ob-judet").value,
     adresa:     document.getElementById("ob-adresa").value.trim(),
     produse:    rows,
@@ -4037,13 +4051,15 @@ setInterval(refreshSearchables, 2000);
 function showContract(cnp) {
   var body = document.getElementById('contractBody');
   var titlu = document.getElementById('contractTitlu');
+  var isPF = cnp.length === 13;
+  var tipLabel = isPF ? 'CNP' : 'CUI';
   body.innerHTML = '<div style="text-align:center;color:var(--mut);padding:40px">Se incarca contractul...</div>';
   titlu.textContent = '📄 Detalii contract';
   openModal('m-contract');
 
   db.collection('contracte').doc(cnp).get().then(function(doc) {
     if (!doc.exists) {
-      body.innerHTML = '<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">📋</div><div style="color:var(--mut);font-size:14px">Nu exista contract in sistem pentru CNP-ul <strong>' + cnp + '</strong></div><div style="color:var(--mut);font-size:12px;margin-top:8px">Contractul va aparea aici automat dupa ce este generat din aplicatia Contract Inchiriere.</div></div>';
+      body.innerHTML = '<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">📋</div><div style="color:var(--mut);font-size:14px">Nu exista contract in sistem pentru ' + tipLabel + ' <strong>' + cnp + '</strong></div><div style="color:var(--mut);font-size:12px;margin-top:8px">Contractul va aparea aici automat dupa ce este generat din aplicatia Contract Inchiriere.</div></div>';
       return;
     }
     var c = doc.data();
@@ -4052,7 +4068,7 @@ function showContract(cnp) {
       ['Nr. contract', c.nr_contract || '-'],
       ['Data contract', c.data_contract || '-'],
       ['Titular', (c.nume_titular || '') + ' ' + (c.prenume_titular || '')],
-      ['CNP', c.cnp_titular || '-'],
+      [tipLabel, isPF ? (c.cnp_titular || '-') : (c.cui || cnp)],
       ['Telefon', c.telefon || '-'],
       ['Email', c.email || '-'],
       ['Adresa', [c.adresa, c.localitate, c.judet].filter(Boolean).join(', ') || '-'],
