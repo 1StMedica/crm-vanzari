@@ -158,7 +158,11 @@ tr:hover td{background:#FAFAF8}
 .kch{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .kct{font-size:12px;font-weight:600}
 .kcc{background:var(--brd);font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:10px;color:var(--mut)}
-.dc{background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:10px;margin-bottom:6px;cursor:pointer}
+.dc{background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:10px;margin-bottom:6px;cursor:grab;transition:box-shadow .15s,opacity .15s}
+.dc:active{cursor:grabbing}
+.dc.dragging{opacity:.4;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+.kcol.drag-over{background:var(--accl);outline:2px dashed var(--acc);outline-offset:-2px}
+.kcol-drop{min-height:40px}
 .dc:hover{border-color:#C0BDB5}
 .dn2{font-size:12.5px;font-weight:500;margin-bottom:2px}
 .dc2{font-size:11.5px;color:var(--mut);margin-bottom:5px}
@@ -658,7 +662,7 @@ tr:hover td{background:#FAFAF8}
             <div class="fr"><label class="fl">Contact *</label><input class="fi" id="ob-contact" placeholder="Nume Prenume"></div>
             <div class="fr"><label class="fl">Email</label><input class="fi" id="ob-email" type="email" placeholder="email@companie.ro"></div>
             <div class="fr"><label class="fl">Telefon</label><input class="fi" id="ob-tel" placeholder="07xx xxx xxx"></div>
-            <div class="fr"><label class="fl">CUI <span style="font-size:10px;color:var(--mut)">(doar cifre, fără RO)</span></label><input class="fi" id="ob-cui" placeholder="12345678" oninput="validateCUI(this)"><div id="ob-cui-err" style="display:none;font-size:11.5px;color:var(--dng);margin-top:3px">⚠ CUI-ul trebuie să conțină doar cifre (fără litere sau caractere speciale)</div></div>
+            <div class="fr"><label class="fl">CUI</label><input class="fi" id="ob-cui" placeholder="RO12345678"></div>
             <div class="fr"><label class="fl">Județ</label>
               <select class="fi" id="ob-judet"><option value="">—</option></select>
             </div>
@@ -2297,11 +2301,15 @@ function renderKanban() {
 
   board.innerHTML = ETAPE_PIPELINE.map((etapa,ei)=>{
     const cols = opps.filter(o=>(o.etapa||"Identificare")===etapa);
+    const colTotal = cols.reduce((s,o)=>s+(parseFloat(o.valoare)||0),0);
     const cards = cols.map(o=>{
       const prob = parseFloat(o.probabilitate)||0;
       const resp = allUsers.find(u=>u.id===o.responsabilId);
       const initials = resp?(resp.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase():"?";
-      return `<div class="dc" onclick="editOpp('${o.id}')">
+      return `<div class="dc" draggable="true" data-opp-id="${o.id}"
+        ondragstart="oppDragStart(event,'${o.id}')"
+        ondragend="oppDragEnd(event)"
+        onclick="editOpp('${o.id}')">
         <div class="dn2">${o.client||""}</div>
         <div class="dc2">${o.contact||""} ${o.industrie?'· '+o.industrie:''}</div>
         <div class="df">
@@ -2312,15 +2320,74 @@ function renderKanban() {
         <div style="font-size:10.5px;color:var(--mut);margin-top:2px">${prob}%</div>
       </div>`;
     }).join("");
-    return `<div class="kcol">
+    return `<div class="kcol" data-etapa="${etapa}"
+      ondragover="oppDragOver(event)"
+      ondragleave="oppDragLeave(event)"
+      ondrop="oppDrop(event,'${etapa}')">
       <div class="kch">
         <div style="display:flex;align-items:center;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:${ETAPE_COLORS[ei]}"></div><div class="kct">${etapa}</div></div>
         <span class="kcc">${cols.length}</span>
       </div>
-      ${cards||`<div style="font-size:12px;color:var(--mut);padding:8px 0;text-align:center">—</div>`}
+      ${colTotal>0?`<div style="font-size:10.5px;color:var(--mut);margin-bottom:6px">${colTotal.toLocaleString('ro-RO',{maximumFractionDigits:0})} LEI</div>`:""}
+      <div class="kcol-drop">
+        ${cards||`<div style="font-size:12px;color:var(--mut);padding:8px 0;text-align:center">Trage aici</div>`}
+      </div>
       <button class="btn bg bs" style="width:100%;justify-content:center;margin-top:4px" onclick="newOppInEtapa('${etapa}')">+</button>
     </div>`;
   }).join("");
+}
+
+// ============================================================
+// PIPELINE — DRAG & DROP
+// ============================================================
+let _draggedOppId = null;
+
+function oppDragStart(e, oppId) {
+  _draggedOppId = oppId;
+  e.dataTransfer.effectAllowed = "move";
+  e.target.classList.add("dragging");
+  // prevent the click handler from firing after drag
+  e.stopPropagation();
+}
+
+function oppDragEnd(e) {
+  e.target.classList.remove("dragging");
+  document.querySelectorAll(".kcol.drag-over").forEach(c=>c.classList.remove("drag-over"));
+}
+
+function oppDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  const col = e.target.closest(".kcol");
+  if(col) col.classList.add("drag-over");
+}
+
+function oppDragLeave(e) {
+  const col = e.target.closest(".kcol");
+  if(col && !col.contains(e.relatedTarget)) col.classList.remove("drag-over");
+}
+
+async function oppDrop(e, newEtapa) {
+  e.preventDefault();
+  document.querySelectorAll(".kcol.drag-over").forEach(c=>c.classList.remove("drag-over"));
+  if(!_draggedOppId) return;
+  const opp = allOpps.find(o=>o.id===_draggedOppId);
+  if(!opp || opp.etapa===newEtapa) { _draggedOppId=null; return; }
+
+  // Update probability based on stage
+  const probMap = {Identificare:15,"Discuție":35,Ofertare:55,Negociere:75,"Câștigat":100,Pierdut:0};
+  try {
+    const upd = { etapa:newEtapa, updatedAt:new Date().toISOString() };
+    if(probMap[newEtapa]!==undefined) upd.probabilitate = probMap[newEtapa];
+    // If moved to Câștigat or Pierdut, set close date
+    if(newEtapa==="Câștigat"||newEtapa==="Pierdut") upd.dataInchidere = new Date().toISOString().split("T")[0];
+    await db.collection("oportunitati").doc(_draggedOppId).update(upd);
+    await writeAudit(`Oportunitate ${opp.client}: ${opp.etapa} → ${newEtapa}`);
+    toast(`${opp.client} mutat în ${newEtapa}`);
+    await loadOpps();
+    renderKanban();
+  } catch(err) { toast("Eroare: "+err.message); }
+  _draggedOppId = null;
 }
 
 function newOppInEtapa(etapa) {
@@ -2477,6 +2544,77 @@ async function loadOffers() {
 // ============================================================
 // VIZUALIZARE OFERTĂ
 // ============================================================
+
+// ============================================================
+// SCHIMBARE STATUS OFERTĂ + sincronizare pipeline
+// ============================================================
+async function changeOfferStatus(offerId, newStatus) {
+  const o = allOffers.find(x=>x.id===offerId);
+  if(!o) return;
+
+  try {
+    await db.collection("oferte").doc(offerId).update({
+      status: newStatus,
+      statusChangedAt: new Date().toISOString(),
+    });
+
+    // Sincronizare pipeline
+    if(newStatus === "Trimisă") {
+      // Adaugă/actualizează în pipeline la Ofertare
+      const existing = allOpps.find(x=>x.client===o.client && !["Câștigat","Pierdut"].includes(x.etapa));
+      if(existing) {
+        await db.collection("oportunitati").doc(existing.id).update({ etapa:"Ofertare", valoare:o.total, probabilitate:55, updatedAt:new Date().toISOString() });
+      } else {
+        await db.collection("oportunitati").add({
+          client:o.client, contact:o.contact||"", valoare:o.total||0,
+          probabilitate:55, etapa:"Ofertare",
+          responsabilId:o.agentId||currentUser.uid, responsabil:o.agent||"",
+          createdAt:new Date().toISOString(), sursa:`Ofertă ${o.nr}`,
+        });
+      }
+      toast(`Ofertă ${o.nr} → Trimisă · Pipeline actualizat`);
+    }
+    else if(newStatus === "Acceptată") {
+      // Mută oportunitatea în Câștigat
+      const existing = allOpps.find(x=>x.client===o.client && !["Câștigat","Pierdut"].includes(x.etapa));
+      if(existing) {
+        await db.collection("oportunitati").doc(existing.id).update({
+          etapa:"Câștigat", probabilitate:100,
+          valoare:o.total, dataInchidere:new Date().toISOString().split("T")[0],
+          updatedAt:new Date().toISOString(),
+        });
+      } else {
+        await db.collection("oportunitati").add({
+          client:o.client, contact:o.contact||"", valoare:o.total||0,
+          probabilitate:100, etapa:"Câștigat",
+          responsabilId:o.agentId||currentUser.uid, responsabil:o.agent||"",
+          createdAt:new Date().toISOString(), dataInchidere:new Date().toISOString().split("T")[0],
+          sursa:`Ofertă ${o.nr}`,
+        });
+      }
+      toast(`🎉 Ofertă ${o.nr} ACCEPTATĂ · Oportunitate mutată în Câștigat!`);
+    }
+    else if(newStatus === "Respinsă") {
+      const existing = allOpps.find(x=>x.client===o.client && !["Câștigat","Pierdut"].includes(x.etapa));
+      if(existing) {
+        await db.collection("oportunitati").doc(existing.id).update({
+          etapa:"Pierdut", probabilitate:0,
+          motivPierdere:"Ofertă respinsă",
+          dataInchidere:new Date().toISOString().split("T")[0],
+          updatedAt:new Date().toISOString(),
+        });
+      }
+      toast(`Ofertă ${o.nr} → Respinsă · Oportunitate mutată în Pierdut`);
+    }
+
+    await writeAudit(`Ofertă ${o.nr}: status → ${newStatus}`);
+    await loadOffers();
+    await loadOpps();
+    closeModal("m-view-offer");
+    if(document.getElementById("p-pipeline")?.classList.contains("active")) renderKanban();
+  } catch(e) { toast("Eroare: "+e.message); }
+}
+
 function viewOffer(id) {
   const o = allOffers.find(x=>x.id===id); if(!o) return;
   const stTag={Draft:"t-gray",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn","Pending aprobare":"t-warn"};
@@ -2536,12 +2674,15 @@ function viewOffer(id) {
     ...(o.observatii?[["Observații", o.observatii]]:[]),
   ].map(([k,v])=>`<div><span style="color:var(--mut);font-size:11.5px">${k}:</span> ${v}</div>`).join("");
 
-  // Actions
+  // Actions — include schimbare status
   const canEdit = !["Acceptată"].includes(o.status);
-  const cuiClean = (o.cui||"").replace(/[^0-9]/g,"");
+  const statusButtons = [];
+  if(o.status==="Draft")     statusButtons.push(`<button class="btn bp" onclick="changeOfferStatus('${o.id}','Trimisă')">📤 Marchează Trimisă</button>`);
+  if(o.status==="Trimisă")   statusButtons.push(`<button class="btn bp" style="background:var(--suc)" onclick="changeOfferStatus('${o.id}','Acceptată')">✓ Marchează Acceptată</button>`);
+  if(o.status==="Trimisă")   statusButtons.push(`<button class="btn bg" style="color:var(--dng);border-color:var(--dng)" onclick="changeOfferStatus('${o.id}','Respinsă')">✕ Respinsă</button>`);
   document.getElementById("vo-actions").innerHTML = `
+    ${statusButtons.join("")}
     <button class="btn bg" onclick="generateOfferWordFromId('${o.id}');closeModal('m-view-offer')">📄 Word</button>
-    ${cuiClean.length>=2?`<button class="btn bg" style="color:var(--suc);border-color:var(--suc)" onclick="showContract('${cuiClean}')">📋 Contract</button>`:""}
     ${canEdit?`<button class="btn bg" onclick="closeModal('m-view-offer');editOfferInBuilder('${o.id}')">✏ Editează</button>`:""}
     <button class="btn bg" onclick="closeModal('m-view-offer');duplicateOffer('${o.id}')">⧉ Duplică</button>
     ${canEdit?`<button class="btn bg" style="color:var(--dng);border-color:var(--dng)" onclick="closeModal('m-view-offer');deleteOffer('${o.id}','${o.nr||""}')">🗑 Șterge</button>`:""}
@@ -2577,6 +2718,8 @@ function renderOffersTable() {
       <td>${o.agent||""}</td>
       <td style="white-space:nowrap" onclick="event.stopPropagation()">
         <button class="abt" onclick="viewOffer('${o.id}')">👁 Vezi</button>
+        ${o.status==="Draft"?`<button class="abt" style="color:var(--acc);border-color:var(--acc)" onclick="changeOfferStatus('${o.id}','Trimisă')">📤 Trimite</button>`:""}
+        ${o.status==="Trimisă"?`<button class="abt" style="color:var(--suc);border-color:var(--suc)" onclick="changeOfferStatus('${o.id}','Acceptată')">✓ Acceptată</button>`:""}
         <button class="abt" onclick="generateOfferWordFromId('${o.id}')">📄 Word</button>
         ${canEdit(o)?`<button class="abt" onclick="editOfferInBuilder('${o.id}')">✏ Edit</button>`:""}
         <button class="abt" onclick="duplicateOffer('${o.id}')">⧉ Duplică</button>
@@ -2628,20 +2771,6 @@ function updateProdVisibility() {
   const wrap  = document.getElementById("ob-prod-table-wrap");
   if(empty) empty.style.display = rows.length>0 ? "none" : "block";
   if(wrap)  wrap.style.display  = rows.length>0 ? "block" : "none";
-}
-
-function validateCUI(input) {
-  var val = input.value;
-  var errEl = document.getElementById('ob-cui-err');
-  if (/[^0-9]/.test(val)) {
-    input.value = val.replace(/[^0-9]/g, '');
-    errEl.style.display = 'block';
-    input.style.borderColor = 'var(--dng)';
-    setTimeout(function() { errEl.style.display = 'none'; input.style.borderColor = ''; }, 4000);
-  } else {
-    errEl.style.display = 'none';
-    input.style.borderColor = '';
-  }
 }
 
 function calcOffer(){
@@ -2753,7 +2882,7 @@ async function saveOffer(){
     contact:    document.getElementById("ob-contact").value.trim(),
     email:      document.getElementById("ob-email").value.trim(),
     telefon:    document.getElementById("ob-tel").value.trim(),
-    cui:        document.getElementById("ob-cui").value.trim().replace(/[^0-9]/g,''),
+    cui:        document.getElementById("ob-cui").value.trim(),
     judet:      document.getElementById("ob-judet").value,
     adresa:     document.getElementById("ob-adresa").value.trim(),
     produse:    rows,
@@ -4038,78 +4167,5 @@ setInterval(refreshSearchables, 2000);
 
 
 </script>
-<!-- ═══ NOU: MODAL CONTRACT (citeste din colectia contracte dupa CNP) ═══ -->
-<div id="m-contract" class="mo" style="display:none"><div class="md" style="width:620px;max-width:96vw" onclick="event.stopPropagation()">
-  <div class="mh"><div class="mt" id="contractTitlu">📄 Detalii contract</div><div class="mx" onclick="closeModal('m-contract')">✕</div></div>
-  <div class="mb" id="contractBody" style="padding:20px">
-    <div style="text-align:center;color:var(--mut)">Se incarca...</div>
-  </div>
-  <div class="mf"><button class="btn bg" onclick="closeModal('m-contract')">Inchide</button></div>
-</div></div>
-
-<script>
-function showContract(cnp) {
-  var body = document.getElementById('contractBody');
-  var titlu = document.getElementById('contractTitlu');
-  var isPF = cnp.length === 13;
-  var tipLabel = isPF ? 'CNP' : 'CUI';
-  body.innerHTML = '<div style="text-align:center;color:var(--mut);padding:40px">Se incarca contractul...</div>';
-  titlu.textContent = '📄 Detalii contract';
-  openModal('m-contract');
-
-  db.collection('contracte').doc(cnp).get().then(function(doc) {
-    if (!doc.exists) {
-      body.innerHTML = '<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">📋</div><div style="color:var(--mut);font-size:14px">Nu exista contract in sistem pentru ' + tipLabel + ' <strong>' + cnp + '</strong></div><div style="color:var(--mut);font-size:12px;margin-top:8px">Contractul va aparea aici automat dupa ce este generat din aplicatia Contract Inchiriere.</div></div>';
-      return;
-    }
-    var c = doc.data();
-    titlu.textContent = '📄 Contract ' + (c.nr_contract || '-');
-    var rows = [
-      ['Nr. contract', c.nr_contract || '-'],
-      ['Data contract', c.data_contract || '-'],
-      ['Titular', (c.nume_titular || '') + ' ' + (c.prenume_titular || '')],
-      [tipLabel, isPF ? (c.cnp_titular || '-') : (c.cui || cnp)],
-      ['Telefon', c.telefon || '-'],
-      ['Email', c.email || '-'],
-      ['Adresa', [c.adresa, c.localitate, c.judet].filter(Boolean).join(', ') || '-'],
-      ['Serie CI', c.serie_ci || '-'],
-      ['Marca aparat', c.marca_aparat || '-'],
-      ['Serie aparat', c.serie_aparat || '-'],
-      ['Chirie lunara', c.chirie_lunara ? c.chirie_lunara + ' LEI' : '-'],
-      ['Valoare aparat', c.valoare_aparat ? c.valoare_aparat + ' LEI' : '-'],
-      ['Agent', c.agent || '-'],
-      ['Garantie', c.garantie ? 'Da' : 'Nu']
-    ];
-    if (c.f_nume || c.f_prenume || c.f_cnp) {
-      rows.push(['', '']);
-      rows.push(['FIDEIUSOR', '']);
-      rows.push(['Nume fideiusor', (c.f_nume || '') + ' ' + (c.f_prenume || '')]);
-      rows.push(['CNP fideiusor', c.f_cnp || '-']);
-      rows.push(['Telefon fideiusor', c.f_telefon || '-']);
-    }
-    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
-    rows.forEach(function(r) {
-      if (r[0] === '' && r[1] === '') {
-        html += '<tr><td colspan="2" style="padding:6px 0;border-bottom:1px solid var(--brd)"></td></tr>';
-      } else if (r[1] === '') {
-        html += '<tr><td colspan="2" style="padding:10px 0 4px;font-weight:600;font-size:12px;color:var(--acc);letter-spacing:1px">' + r[0] + '</td></tr>';
-      } else {
-        html += '<tr><td style="padding:7px 12px 7px 0;color:var(--mut);font-size:12px;white-space:nowrap;width:140px">' + r[0] + '</td><td style="padding:7px 0;font-weight:500">' + r[1] + '</td></tr>';
-      }
-    });
-    html += '</table>';
-    if (c.observatii) {
-      html += '<div style="margin-top:16px;padding:10px 14px;background:var(--bg);border-radius:var(--r);font-size:12px;color:var(--tx)">' + c.observatii + '</div>';
-    }
-    if (c.updatedAt) {
-      html += '<div style="margin-top:12px;font-size:11px;color:var(--mut);text-align:right">Ultima actualizare: ' + (c.updatedAt.toDate ? c.updatedAt.toDate().toLocaleString('ro-RO') : c.updatedAt) + '</div>';
-    }
-    body.innerHTML = html;
-  }).catch(function(e) {
-    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dng)">Eroare la citirea contractului: ' + e.message + '</div>';
-  });
-}
-</script>
 </body>
 </html>
-
