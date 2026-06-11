@@ -603,7 +603,7 @@ tr:hover td{background:#FAFAF8}
     <div style="display:flex;gap:8px;margin-bottom:14px">
       <select class="fi" style="width:130px" id="f-tip-contact"><option value="">Tip contact</option><option>Client</option><option>Prospect</option><option>Partener</option></select>
       <select class="fi" style="width:120px" id="f-judet-contact"><option value="">Toate județele</option></select>
-      <button class="btn bp" style="margin-left:auto" onclick="openModal('m-contact')">+ Contact nou</button>
+      <button class="btn bp" style="margin-left:auto" onclick="newContact()">+ Contact nou</button>
     </div>
     <div class="tw2">
       <table>
@@ -2270,14 +2270,37 @@ async function saveContact() {
   } catch(e){ toast("Eroare: "+e.message); }
 }
 
+function resetContactModal() {
+  document.getElementById("mc-id").value="";
+  document.getElementById("m-contact-title").textContent="Contact nou";
+  document.getElementById("mc-nume").value="";
+  document.getElementById("mc-functie").value="";
+  document.getElementById("mc-companie").value="";
+  document.getElementById("mc-tel").value="";
+  document.getElementById("mc-email").value="";
+  const j=document.getElementById("mc-judet"); if(j){j.value=""; if(j._ssRebuild)j._ssRebuild();}
+  const t=document.getElementById("mc-tip"); if(t){t.value="Prospect"; if(t._ssRebuild)t._ssRebuild();}
+  const g=document.getElementById("mc-gdpr"); if(g){g.value="acordat"; if(g._ssRebuild)g._ssRebuild();}
+}
+
+function newContact() {
+  resetContactModal();
+  openModal("m-contact");
+}
+
 function editContact(id) {
   const c=allContacts.find(x=>x.id===id);if(!c)return;
+  resetContactModal();
   document.getElementById("mc-id").value=id;
   document.getElementById("m-contact-title").textContent="Editare contact";
-  ["nume","functie","companie","telefon","email"].forEach(f=>{const el=document.getElementById("mc-"+f);if(el)el.value=c[f]||"";});
-  document.getElementById("mc-judet").value=c.judet||"";
-  document.getElementById("mc-tip").value=c.tip||"Prospect";
-  document.getElementById("mc-gdpr").value=c.gdpr||"acordat";
+  document.getElementById("mc-nume").value=c.nume||"";
+  document.getElementById("mc-functie").value=c.functie||"";
+  document.getElementById("mc-companie").value=c.companie||"";
+  document.getElementById("mc-tel").value=c.telefon||"";
+  document.getElementById("mc-email").value=c.email||"";
+  const j=document.getElementById("mc-judet"); if(j){j.value=c.judet||""; if(j._ssRebuild)j._ssRebuild();}
+  const t=document.getElementById("mc-tip"); if(t){t.value=c.tip||"Prospect"; if(t._ssRebuild)t._ssRebuild();}
+  const g=document.getElementById("mc-gdpr"); if(g){g.value=c.gdpr||"acordat"; if(g._ssRebuild)g._ssRebuild();}
   openModal("m-contact");
 }
 
