@@ -588,7 +588,7 @@ tr:hover td{background:#FAFAF8}
     </div>
     <div class="tw2">
       <table>
-        <thead><tr><th><input type="checkbox" id="cb-all" onchange="toggleAllCB(this)"></th><th>Scor</th><th>Nume</th><th>Companie</th><th class="hide-mobile">Județ</th><th class="hide-mobile">Sursă</th><th>Status</th><th class="hide-mobile">Responsabil</th><th class="hide-mobile">Inactiv</th><th class="hide-mobile">Follow-up</th><th>Acțiuni</th></tr></thead>
+        <thead><tr id="leads-thead"></tr></thead>
         <tbody id="leads-tbody"><tr><td colspan="11"><div class="loading"><div class="spin"></div></div></td></tr></tbody>
       </table>
     </div>
@@ -600,14 +600,16 @@ tr:hover td{background:#FAFAF8}
 
   <!-- ======================== CONTACTS ======================== -->
   <div id="p-contacts" class="pg">
-    <div style="display:flex;gap:8px;margin-bottom:14px">
-      <select class="fi" style="width:130px" id="f-tip-contact"><option value="">Tip contact</option><option>Client</option><option>Prospect</option><option>Partener</option></select>
-      <select class="fi" style="width:120px" id="f-judet-contact"><option value="">Toate județele</option></select>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <input class="fi" style="width:180px" id="f-search-contact" placeholder="🔍 Caută nume, companie..." oninput="renderContactsTable()">
+      <select class="fi" style="width:130px" id="f-tip-contact" onchange="renderContactsTable()"><option value="">Tip contact</option><option>Client</option><option>Prospect</option><option>Partener</option></select>
+      <select class="fi" style="width:140px" id="f-functie-contact" onchange="renderContactsTable()"><option value="">Toate funcțiile</option></select>
+      <select class="fi" style="width:120px" id="f-judet-contact" onchange="renderContactsTable()"><option value="">Toate județele</option></select>
       <button class="btn bp" style="margin-left:auto" onclick="newContact()">+ Contact nou</button>
     </div>
     <div class="tw2">
       <table>
-        <thead><tr><th>Nume</th><th class="hide-mobile">Funcție</th><th>Companie</th><th class="hide-mobile">Județ</th><th>Telefon</th><th class="hide-mobile">Email</th><th>Tip</th><th class="hide-mobile">GDPR</th><th>Acțiuni</th></tr></thead>
+        <thead><tr id="contacts-thead"></tr></thead>
         <tbody id="contacts-tbody"><tr><td colspan="9"><div class="loading"><div class="spin"></div></div></td></tr></tbody>
       </table>
     </div>
@@ -634,7 +636,7 @@ tr:hover td{background:#FAFAF8}
     </div>
     <div class="tw2">
       <table>
-        <thead><tr><th>Nr. ofertă</th><th>Client</th><th class="hide-mobile">Versiune</th><th>Valoare (cu TVA)</th><th class="hide-mobile">Data</th><th class="hide-mobile">Valabilitate</th><th>Status</th><th class="hide-mobile">Agent</th><th>Acțiuni</th></tr></thead>
+        <thead><tr id="offers-thead"></tr></thead>
         <tbody id="offers-tbody"><tr><td colspan="9"><div class="loading"><div class="spin"></div></div></td></tr></tbody>
       </table>
     </div>
@@ -1958,6 +1960,34 @@ function renderLeadsTable() {
     (!judet||l.judet===judet) &&
     (!scorf||(scorf==="hot"&&l.scor>=70)||(scorf==="warm"&&l.scor>=40&&l.scor<70)||(scorf==="cold"&&l.scor<40))
   );
+
+  // Build sortable header
+  const lthead = document.getElementById("leads-thead");
+  if(lthead) lthead.innerHTML =
+    '<th><input type="checkbox" id="cb-all" onchange="toggleAllCB(this)"></th>' +
+    sortableHeader("leads","scor","Scor") +
+    sortableHeader("leads","nume","Nume") +
+    sortableHeader("leads","companie","Companie") +
+    sortableHeader("leads","judet","Județ","hide-mobile") +
+    sortableHeader("leads","sursa","Sursă","hide-mobile") +
+    sortableHeader("leads","status","Status") +
+    sortableHeader("leads","responsabil","Responsabil","hide-mobile") +
+    '<th class="hide-mobile">Inactiv</th>' +
+    sortableHeader("leads","followup","Follow-up","hide-mobile") +
+    '<th>Acțiuni</th>';
+
+  // Apply sort
+  leads = applySort("leads", leads, {
+    scor:    l=>l.scor||0,
+    nume:    l=>l.nume,
+    companie:l=>l.companie,
+    judet:   l=>l.judet,
+    sursa:   l=>l.sursa,
+    status:  l=>l.status,
+    responsabil: l=>allUsers.find(u=>u.id===l.responsabilId)?.name||l.responsabil||"",
+    followup:l=>l.followup||"",
+  });
+
   const total = leads.length;
   const page = Math.min(leadsPage, Math.max(0, Math.ceil(total/PAGE_SIZE)-1));
   const slice = leads.slice(page*PAGE_SIZE, (page+1)*PAGE_SIZE);
@@ -2229,21 +2259,116 @@ async function loadContacts() {
   renderContactsTable();
 }
 
+
+// ============================================================
+// SORTARE TABELE (global)
+// ============================================================
+const _sortState = {
+  contacts: { key:null, dir:1 },
+  leads:    { key:null, dir:1 },
+  offers:   { key:null, dir:1 },
+};
+
+function sortBy(table, key, rerender) {
+  const st = _sortState[table];
+  if(st.key === key) st.dir = -st.dir;  // toggle direction
+  else { st.key = key; st.dir = 1; }
+  if(typeof window[rerender]==="function") window[rerender]();
+}
+
+function applySort(table, arr, accessors) {
+  const st = _sortState[table];
+  if(!st.key || !accessors[st.key]) return arr;
+  const fn = accessors[st.key];
+  return [...arr].sort((a,b)=>{
+    let va = fn(a), vb = fn(b);
+    // Normalize
+    if(va==null) va = "";
+    if(vb==null) vb = "";
+    if(typeof va==="number" && typeof vb==="number") return (va-vb)*st.dir;
+    va = String(va).toLowerCase();
+    vb = String(vb).toLowerCase();
+    if(va<vb) return -1*st.dir;
+    if(va>vb) return 1*st.dir;
+    return 0;
+  });
+}
+
+function sortArrow(table, key) {
+  const st = _sortState[table];
+  if(st.key!==key) return '<span style="opacity:.3;font-size:10px">⇅</span>';
+  return st.dir===1 ? '<span style="color:var(--acc);font-size:10px">▲</span>' : '<span style="color:var(--acc);font-size:10px">▼</span>';
+}
+
+function sortableHeader(table, key, label, cls) {
+  return `<th class="${cls||''}" style="cursor:pointer;user-select:none" onclick="sortBy('${table}','${key}','${
+    table==='contacts'?'renderContactsTable':table==='leads'?'renderLeadsTable':'renderOffersTable'
+  }')">${label} ${sortArrow(table,key)}</th>`;
+}
+
+
 function renderContactsTable() {
   const tbody = document.getElementById("contacts-tbody"); if(!tbody)return;
-  if(!allContacts.length){ tbody.innerHTML='<tr><td colspan="9"><div class="empty"><div class="empty-icon">👤</div>Niciun contact</div></td></tr>'; return; }
+
+  // Build sortable header
+  const thead = document.getElementById("contacts-thead");
+  if(thead) thead.innerHTML =
+    sortableHeader("contacts","nume","Nume") +
+    sortableHeader("contacts","functie","Funcție","hide-mobile") +
+    sortableHeader("contacts","companie","Companie") +
+    sortableHeader("contacts","judet","Județ","hide-mobile") +
+    sortableHeader("contacts","telefon","Telefon") +
+    '<th class="hide-mobile">Email</th>' +
+    sortableHeader("contacts","tip","Tip") +
+    '<th class="hide-mobile">GDPR</th><th>Acțiuni</th>';
+
+  // Populate functie filter (unique values)
+  const fFunctie = document.getElementById("f-functie-contact");
+  if(fFunctie) {
+    const current = fFunctie.value;
+    const functii = [...new Set(allContacts.map(c=>c.functie).filter(Boolean))].sort();
+    fFunctie.innerHTML = '<option value="">Toate funcțiile</option>' + functii.map(f=>`<option${f===current?' selected':''}>${f}</option>`).join("");
+    if(fFunctie._ssRebuild) fFunctie._ssRebuild();
+  }
+
+  // Filters
+  const q     = (document.getElementById("f-search-contact")?.value||"").toLowerCase().trim();
+  const fTip  = document.getElementById("f-tip-contact")?.value||"";
+  const fFunc = document.getElementById("f-functie-contact")?.value||"";
+  const fJud  = document.getElementById("f-judet-contact")?.value||"";
+
+  let list = allContacts.filter(c=>{
+    if(fTip && c.tip!==fTip) return false;
+    if(fFunc && c.functie!==fFunc) return false;
+    if(fJud && c.judet!==fJud) return false;
+    if(q && !((c.nume||"").toLowerCase().includes(q) || (c.companie||"").toLowerCase().includes(q) || (c.email||"").toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  // Sort
+  list = applySort("contacts", list, {
+    nume:     c=>c.nume,
+    functie:  c=>c.functie,
+    companie: c=>c.companie,
+    judet:    c=>c.judet,
+    telefon:  c=>c.telefon,
+    tip:      c=>c.tip,
+  });
+
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="9"><div class="empty"><div class="empty-icon">👤</div>Niciun contact găsit</div></td></tr>'; return; }
+
   const tipTag={Client:"t-green",Prospect:"t-blue",Partener:"t-pur"};
   const gdprTag={acordat:"t-green",expirat:"t-warn",retras:"t-red"};
-  tbody.innerHTML = allContacts.map(c=>`
+  tbody.innerHTML = list.map(c=>`
     <tr>
       <td><b>${c.nume||""}</b></td>
-      <td>${c.functie||""}</td>
+      <td class="hide-mobile">${c.functie||""}</td>
       <td>${c.companie||""}</td>
-      <td>${c.judet||""}</td>
+      <td class="hide-mobile">${c.judet||""}</td>
       <td>${c.telefon||""}</td>
-      <td style="color:var(--acc)">${c.email||""}</td>
+      <td class="hide-mobile" style="color:var(--acc)">${c.email||""}</td>
       <td><span class="tag ${tipTag[c.tip]||'t-gray'}">${c.tip||""}</span></td>
-      <td><span class="tag ${gdprTag[c.gdpr]||'t-gray'}">${c.gdpr==='acordat'?'✓ Acordat':c.gdpr==='expirat'?'⚠ Expirat':'Retras'}</span></td>
+      <td class="hide-mobile"><span class="tag ${gdprTag[c.gdpr]||'t-gray'}">${c.gdpr==='acordat'?'✓ Acordat':c.gdpr==='expirat'?'⚠ Expirat':'Retras'}</span></td>
       <td><button class="abt" onclick="editContact('${c.id}')">Edit</button></td>
     </tr>`).join("");
 }
@@ -2718,6 +2843,31 @@ function renderOffersTable() {
   const st = document.getElementById("f-offer-status")?.value||"";
   const ag = document.getElementById("f-offer-agent")?.value||"";
   let offers = allOffers.filter(o=>(!st||o.status===st)&&(!ag||(o.agentId===ag)));
+
+  // Build sortable header
+  const othead = document.getElementById("offers-thead");
+  if(othead) othead.innerHTML =
+    sortableHeader("offers","nr","Nr. ofertă") +
+    sortableHeader("offers","client","Client") +
+    '<th class="hide-mobile">Versiune</th>' +
+    sortableHeader("offers","total","Valoare (cu TVA)") +
+    sortableHeader("offers","createdAt","Data","hide-mobile") +
+    sortableHeader("offers","valabilitatePana","Valabilitate","hide-mobile") +
+    sortableHeader("offers","status","Status") +
+    sortableHeader("offers","agent","Agent","hide-mobile") +
+    '<th>Acțiuni</th>';
+
+  // Apply sort
+  offers = applySort("offers", offers, {
+    nr:      o=>o.nr,
+    client:  o=>o.client,
+    total:   o=>o.total||0,
+    createdAt: o=>o.createdAt||"",
+    valabilitatePana: o=>o.valabilitatePana||"",
+    status:  o=>o.status,
+    agent:   o=>o.agent||"",
+  });
+
   const tbody=document.getElementById("offers-tbody");if(!tbody)return;
   if(!offers.length){tbody.innerHTML='<tr><td colspan="9"><div class="empty">Nicio ofertă</div></td></tr>';return;}
   const stTag={Draft:"t-red",Trimisă:"t-blue",Acceptată:"t-green",Respinsă:"t-red",Expirată:"t-warn","Pending aprobare":"t-warn"};
